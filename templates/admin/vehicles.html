@@ -1,0 +1,99 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}车辆管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">车辆管理</h2>
+        <a href="{{ url_for('admin.create_vehicle') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> 添加车辆
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>车牌号</th>
+                            <th>类型</th>
+                            <th>品牌</th>
+                            <th>型号</th>
+                            <th>颜色</th>
+                            <th>座位数</th>
+                            <th>状态</th>
+                            <th>驾驶员</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for vehicle in vehicles %}
+                        <tr>
+                            <td>{{ vehicle.id }}</td>
+                            <td>{{ vehicle.plate_number }}</td>
+                            <td>{{ vehicle.vehicle_type }}</td>
+                            <td>{{ vehicle.brand or '-' }}</td>
+                            <td>{{ vehicle.model or '-' }}</td>
+                            <td>{{ vehicle.color or '-' }}</td>
+                            <td>{{ vehicle.seats or '-' }}</td>
+                            <td>
+                                {% if vehicle.status == '可用' %}
+                                <span class="badge bg-success">{{ vehicle.status }}</span>
+                                {% elif vehicle.status == '维修中' %}
+                                <span class="badge bg-warning">{{ vehicle.status }}</span>
+                                {% elif vehicle.status == '预约中' %}
+                                <span class="badge bg-info">{{ vehicle.status }}</span>
+                                {% elif vehicle.status == '不可用' %}
+                                <span class="badge bg-danger">{{ vehicle.status }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ vehicle.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ vehicle.driver.name if vehicle.driver else '-' }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{{ url_for('admin.edit_vehicle', vehicle_id=vehicle.id) }}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ vehicle.id }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    
+                                    <!-- 删除确认对话框 -->
+                                    <div class="modal fade" id="deleteModal{{ vehicle.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ vehicle.id }}" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="deleteModalLabel{{ vehicle.id }}">确认删除</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    您确定要删除车牌号为 <strong>{{ vehicle.plate_number }}</strong> 的车辆吗？此操作不可撤销。
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                                    <form method="POST" action="{{ url_for('admin.delete_vehicle', vehicle_id=vehicle.id) }}">
+                                                        <button type="submit" class="btn btn-danger">确认删除</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="10" class="text-center">暂无车辆数据，请添加</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

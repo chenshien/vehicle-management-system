@@ -1,0 +1,117 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}添加表单字段{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">添加表单字段</h2>
+        <a href="{{ url_for('admin.workflow_form_fields', form_id=form.id) }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> 返回字段列表
+        </a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">表单：{{ form.name }}</h5>
+        </div>
+        <div class="card-body">
+            <p>{{ form.description or '无描述' }}</p>
+            <p><strong>所属工作流：</strong> <a href="{{ url_for('admin.edit_workflow', workflow_id=workflow.id) }}" class="text-decoration-none">{{ workflow.name }}</a></p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">字段信息</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('admin.create_form_field', form_id=form.id) }}">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="name" class="form-label">字段名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                        <div class="form-text">字段唯一标识，只能包含字母、数字和下划线，建议使用英文</div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="label" class="form-label">字段标签 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="label" name="label" required>
+                        <div class="form-text">显示在表单上的字段名称，可以使用中文</div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="field_type" class="form-label">字段类型 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="field_type" name="field_type" required>
+                            <option value="">-- 选择类型 --</option>
+                            {% for type in field_types %}
+                            <option value="{{ type.value }}">{{ type.label }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">选择适合的字段类型</div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="placeholder" class="form-label">占位文本</label>
+                        <input type="text" class="form-control" id="placeholder" name="placeholder">
+                        <div class="form-text">字段未填写时显示的提示文本</div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="default_value" class="form-label">默认值</label>
+                        <input type="text" class="form-control" id="default_value" name="default_value">
+                        <div class="form-text">字段的初始值</div>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <div class="form-check mt-4">
+                            <input class="form-check-input" type="checkbox" id="is_required" name="is_required">
+                            <label class="form-check-label" for="is_required">
+                                必填字段
+                            </label>
+                            <div class="form-text">勾选表示此字段必须填写</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3" id="options_container" style="display: none;">
+                    <label for="options" class="form-label">选项值</label>
+                    <textarea class="form-control" id="options" name="options" rows="4"></textarea>
+                    <div class="form-text">
+                        对于下拉选择、单选按钮和复选框类型，请输入选项值，每行一个选项。<br>
+                        格式：值:标签，例如：<br>
+                        1:选项一<br>
+                        2:选项二<br>
+                        3:选项三
+                    </div>
+                </div>
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary">添加字段</button>
+                    <a href="{{ url_for('admin.workflow_form_fields', form_id=form.id) }}" class="btn btn-secondary">取消</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const fieldType = document.getElementById('field_type');
+        const optionsContainer = document.getElementById('options_container');
+        
+        fieldType.addEventListener('change', function() {
+            // 根据字段类型显示/隐藏选项输入框
+            if (this.value === 'select' || this.value === 'radio' || this.value === 'checkbox') {
+                optionsContainer.style.display = 'block';
+            } else {
+                optionsContainer.style.display = 'none';
+            }
+        });
+    });
+</script>
+{% endblock %} 

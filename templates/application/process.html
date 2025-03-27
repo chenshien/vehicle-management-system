@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% from 'components/form_renderer.html' import render_form %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4>处理申请: {{ application.title }}</h4>
+                <div class="badge bg-info">{{ application.status.name }}</div>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    <div class="mb-4">
+                        <h5>申请信息</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>申请人:</strong> {{ application.user.name }}</p>
+                                <p><strong>申请时间:</strong> {{ application.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>工作流:</strong> {{ application.workflow.name }}</p>
+                                <p><strong>当前步骤:</strong> {{ application.current_step.name }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if application.current_step and application.current_step.form %}
+                        <div class="mb-4">
+                            <h5>{{ application.current_step.form.name }}</h5>
+                            <p>{{ application.current_step.form.description }}</p>
+                            {{ render_form(application.current_step.form, form_data, False, application.current_step.id) }}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="mb-4">
+                        <h5>审批意见</h5>
+                        <div class="mb-3">
+                            <label for="comment" class="form-label">备注</label>
+                            <textarea class="form-control" id="comment" name="comment" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('dashboard.index') }}" class="btn btn-secondary">返回</a>
+                            <div>
+                                <button type="submit" class="btn btn-danger" name="action" value="reject">拒绝</button>
+                                <button type="submit" class="btn btn-warning" name="action" value="return">退回修改</button>
+                                <button type="submit" class="btn btn-success" name="action" value="approve">同意</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

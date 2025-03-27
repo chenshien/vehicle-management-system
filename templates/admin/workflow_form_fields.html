@@ -1,0 +1,104 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}表单字段管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">表单字段管理</h2>
+        <div>
+            <a href="{{ url_for('admin.form_visual_design', form_id=form.id) }}" class="btn btn-info me-2">
+                <i class="fas fa-palette"></i> 可视化设计
+            </a>
+            <a href="{{ url_for('admin.preview_form', form_id=form.id) }}" class="btn btn-success me-2" target="_blank">
+                <i class="fas fa-eye"></i> 预览表单
+            </a>
+            <a href="{{ url_for('admin.create_form_field', form_id=form.id) }}" class="btn btn-primary me-2">
+                <i class="fas fa-plus"></i> 添加字段
+            </a>
+            <a href="{{ url_for('admin.edit_workflow_form', form_id=form.id) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> 返回表单编辑
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">表单：{{ form.name }}</h5>
+        </div>
+        <div class="card-body">
+            <p>{{ form.description or '无描述' }}</p>
+            <p><strong>所属工作流：</strong> <a href="{{ url_for('admin.edit_workflow', workflow_id=workflow.id) }}" class="text-decoration-none">{{ workflow.name }}</a></p>
+            <p><strong>字段数量：</strong> {{ fields|length }}</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">字段列表</h5>
+            <a href="{{ url_for('admin.create_form_field', form_id=form.id) }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus"></i> 添加字段
+            </a>
+        </div>
+        <div class="card-body">
+            {% if fields %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>序号</th>
+                            <th>字段名</th>
+                            <th>标签</th>
+                            <th>类型</th>
+                            <th>必填</th>
+                            <th>默认值</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for field in fields %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ field.name }}</td>
+                            <td>{{ field.label }}</td>
+                            <td>
+                                {% for type in field_types %}
+                                    {% if type.value == field.field_type %}
+                                        {{ type.label }}
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                            <td>
+                                {% if field.is_required %}
+                                <span class="badge bg-primary"><i class="fas fa-check"></i></span>
+                                {% else %}
+                                <span class="badge bg-secondary"><i class="fas fa-times"></i></span>
+                                {% endif %}
+                            </td>
+                            <td>{{ field.default_value or '-' }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{{ url_for('admin.edit_form_field', field_id=field.id) }}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('admin.delete_form_field', field_id=field.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('确定删除此字段吗？')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> 当前表单还没有字段，请添加字段。
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

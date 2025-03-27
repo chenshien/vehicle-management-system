@@ -1,0 +1,67 @@
+/* 全局样式 */
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+footer {
+    margin-top: auto;
+}
+
+/* 卡片样式 */
+.card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    border-radius: 0.375rem;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+/* 表格样式 */
+.table thead th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+/* 表单样式 */
+.form-control:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* 按钮样式 */
+.btn {
+    border-radius: 0.25rem;
+}
+
+/* 导航栏样式 */
+.navbar {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 位置选择器样式 */
+.location-field-container {
+    border: 1px solid #ddd;
+    border-radius: 0.375rem;
+    padding: 10px;
+    margin-bottom: 15px;
+    background-color: #f8f9fa;
+}
+
+.location-map {
+    border-radius: 0.25rem;
+    overflow: hidden;
+    border: 1px solid #ccc;
+}
+
+.location-field-container input[type="text"] {
+    margin-bottom: 10px;
+}
+
+.location-field-container button {
+    margin-top: 10px;
+} 

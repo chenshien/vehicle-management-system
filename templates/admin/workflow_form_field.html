@@ -1,0 +1,420 @@
+<!-- 表单字段设计模态框 -->
+<div class="modal fade" id="formFieldModal" tabindex="-1" aria-labelledby="formFieldModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="formFieldModalLabel">添加表单字段</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formFieldForm">
+                    <input type="hidden" id="field_id" name="id">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="field_name" class="form-label">字段名称</label>
+                            <input type="text" class="form-control" id="field_name" name="name" required>
+                            <div class="form-text">字段的内部名称，只能包含字母、数字和下划线</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="field_label" class="form-label">字段标签</label>
+                            <input type="text" class="form-control" id="field_label" name="label" required>
+                            <div class="form-text">显示给用户的字段名称</div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="field_type" class="form-label">字段类型</label>
+                            <select class="form-select" id="field_type" name="field_type" required>
+                                <option value="text">单行文本</option>
+                                <option value="textarea">多行文本</option>
+                                <option value="number">数字</option>
+                                <option value="date">日期</option>
+                                <option value="datetime">日期时间</option>
+                                <option value="select">下拉选择</option>
+                                <option value="radio">单选按钮</option>
+                                <option value="checkbox">复选框</option>
+                                <option value="file">文件上传</option>
+                                <option value="location">位置信息</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="field_order" class="form-label">排序</label>
+                            <input type="number" class="form-control" id="field_order" name="order" value="1" min="1">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="field_required" name="is_required">
+                            <label class="form-check-label" for="field_required">
+                                必填字段
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="field_placeholder" class="form-label">占位文本</label>
+                        <input type="text" class="form-control" id="field_placeholder" name="placeholder">
+                    </div>
+                    <div class="mb-3">
+                        <label for="field_default" class="form-label">默认值</label>
+                        <input type="text" class="form-control" id="field_default" name="default_value">
+                    </div>
+                    
+                    <!-- 高级配置：步骤关联 -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <a class="btn btn-link" data-bs-toggle="collapse" href="#stepConfigCollapse">
+                                高级配置：步骤关联
+                            </a>
+                        </div>
+                        <div class="collapse" id="stepConfigCollapse">
+                            <div class="card-body">
+                                <!-- 步骤可见性配置 -->
+                                <div class="mb-3">
+                                    <label class="form-label">字段可见性</label>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="radio" name="visibility_type" id="visibility_all" value="all" checked>
+                                        <label class="form-check-label" for="visibility_all">
+                                            所有步骤可见
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="radio" name="visibility_type" id="visibility_specific" value="specific">
+                                        <label class="form-check-label" for="visibility_specific">
+                                            指定步骤可见
+                                        </label>
+                                    </div>
+                                    <div id="visible_steps_container" class="ms-4 d-none">
+                                        {% for step in workflow.steps %}
+                                        <div class="form-check">
+                                            <input class="form-check-input visible-step-checkbox" type="checkbox" id="visible_step_{{ step.id }}" value="{{ step.id }}">
+                                            <label class="form-check-label" for="visible_step_{{ step.id }}">
+                                                {{ step.name }}
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                
+                                <!-- 步骤可编辑性配置 -->
+                                <div class="mb-3">
+                                    <label class="form-label">字段可编辑性</label>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="radio" name="editable_type" id="editable_all" value="all" checked>
+                                        <label class="form-check-label" for="editable_all">
+                                            所有步骤可编辑
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="radio" name="editable_type" id="editable_specific" value="specific">
+                                        <label class="form-check-label" for="editable_specific">
+                                            指定步骤可编辑
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="radio" name="editable_type" id="editable_none" value="none">
+                                        <label class="form-check-label" for="editable_none">
+                                            只读（所有步骤不可编辑）
+                                        </label>
+                                    </div>
+                                    <div id="editable_steps_container" class="ms-4 d-none">
+                                        {% for step in workflow.steps %}
+                                        <div class="form-check">
+                                            <input class="form-check-input editable-step-checkbox" type="checkbox" id="editable_step_{{ step.id }}" value="{{ step.id }}">
+                                            <label class="form-check-label" for="editable_step_{{ step.id }}">
+                                                {{ step.name }}
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 选择类型的选项设置 -->
+                    <div id="options_section" class="mb-3 d-none">
+                        <label class="form-label">选项设置</label>
+                        <div id="options_container">
+                            <!-- 这里会动态添加选项输入框 -->
+                        </div>
+                        <button type="button" id="add_option_btn" class="btn btn-sm btn-outline-primary mt-2">
+                            <i class="fas fa-plus"></i> 添加选项
+                        </button>
+                    </div>
+                    
+                    <!-- 位置类型的设置 -->
+                    <div id="location_settings" class="mb-3 d-none">
+                        <div class="alert alert-info">
+                            <h5>位置字段说明</h5>
+                            <p>此字段将允许用户通过地图选择位置，并记录地址、经度和纬度信息。</p>
+                            <p>使用此字段需要配置地图API密钥，请联系管理员。</p>
+                        </div>
+                        <div class="mb-3">
+                            <label for="location_default_zoom" class="form-label">默认缩放级别</label>
+                            <input type="number" class="form-control" id="location_default_zoom" name="location_default_zoom" value="13" min="3" max="18">
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="location_use_wechat" name="location_use_wechat">
+                            <label class="form-check-label" for="location_use_wechat">
+                                优先使用微信获取位置（对于微信小程序或微信浏览器）
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="save_field_btn">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 字段类型处理脚本 -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fieldTypeSelect = document.getElementById('field_type');
+    const optionsSection = document.getElementById('options_section');
+    const optionsContainer = document.getElementById('options_container');
+    const addOptionBtn = document.getElementById('add_option_btn');
+    const locationSettings = document.getElementById('location_settings');
+    
+    // 步骤关联控制
+    const visibilityTypeRadios = document.getElementsByName('visibility_type');
+    const visibleStepsContainer = document.getElementById('visible_steps_container');
+    const editableTypeRadios = document.getElementsByName('editable_type');
+    const editableStepsContainer = document.getElementById('editable_steps_container');
+    
+    // 可见性类型监听
+    for (const radio of visibilityTypeRadios) {
+        radio.addEventListener('change', function() {
+            visibleStepsContainer.classList.toggle('d-none', this.value !== 'specific');
+        });
+    }
+    
+    // 可编辑性类型监听
+    for (const radio of editableTypeRadios) {
+        radio.addEventListener('change', function() {
+            editableStepsContainer.classList.toggle('d-none', this.value !== 'specific');
+        });
+    }
+    
+    // 初始化选项
+    let optionCount = 0;
+    
+    // 监听字段类型变化
+    fieldTypeSelect.addEventListener('change', function() {
+        // 隐藏所有特殊设置区域
+        optionsSection.classList.add('d-none');
+        locationSettings.classList.add('d-none');
+        
+        // 根据类型显示不同的设置区域
+        if (this.value === 'select' || this.value === 'radio' || this.value === 'checkbox') {
+            optionsSection.classList.remove('d-none');
+        } else if (this.value === 'location') {
+            locationSettings.classList.remove('d-none');
+        }
+    });
+    
+    // 添加选项
+    addOptionBtn.addEventListener('click', function() {
+        addOption();
+    });
+    
+    // 添加选项函数
+    function addOption(value = '') {
+        const optionRow = document.createElement('div');
+        optionRow.className = 'input-group mb-2 option-row';
+        optionRow.innerHTML = `
+            <input type="text" class="form-control option-value" value="${value}" placeholder="选项值">
+            <button class="btn btn-outline-danger remove-option" type="button">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        optionsContainer.appendChild(optionRow);
+        
+        // 添加删除选项的事件
+        optionRow.querySelector('.remove-option').addEventListener('click', function() {
+            optionRow.remove();
+        });
+        
+        optionCount++;
+    }
+    
+    // 保存字段按钮
+    document.getElementById('save_field_btn').addEventListener('click', function() {
+        const form = document.getElementById('formFieldForm');
+        
+        // 基本验证
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
+        // 收集表单数据
+        const fieldData = {
+            id: document.getElementById('field_id').value,
+            name: document.getElementById('field_name').value,
+            label: document.getElementById('field_label').value,
+            field_type: document.getElementById('field_type').value,
+            order: document.getElementById('field_order').value,
+            is_required: document.getElementById('field_required').checked,
+            placeholder: document.getElementById('field_placeholder').value,
+            default_value: document.getElementById('field_default').value,
+            options: null,
+            visible_steps: [],
+            editable_steps: []
+        };
+        
+        // 收集可见性设置
+        const visibilityType = document.querySelector('input[name="visibility_type"]:checked').value;
+        if (visibilityType === 'specific') {
+            document.querySelectorAll('.visible-step-checkbox:checked').forEach(function(checkbox) {
+                fieldData.visible_steps.push(parseInt(checkbox.value));
+            });
+        }
+        
+        // 收集可编辑性设置
+        const editableType = document.querySelector('input[name="editable_type"]:checked').value;
+        if (editableType === 'specific') {
+            document.querySelectorAll('.editable-step-checkbox:checked').forEach(function(checkbox) {
+                fieldData.editable_steps.push(parseInt(checkbox.value));
+            });
+        } else if (editableType === 'none') {
+            fieldData.editable_steps = [-1]; // 特殊标记：没有步骤可编辑
+        }
+        
+        // 如果是选择类型，收集选项数据
+        if (fieldData.field_type === 'select' || fieldData.field_type === 'radio' || fieldData.field_type === 'checkbox') {
+            const options = [];
+            document.querySelectorAll('.option-value').forEach(function(input) {
+                if (input.value.trim()) {
+                    options.push(input.value.trim());
+                }
+            });
+            
+            if (options.length === 0) {
+                alert('请至少添加一个选项');
+                return;
+            }
+            
+            fieldData.options = options;
+        }
+        
+        // 如果是位置类型，收集位置设置
+        if (fieldData.field_type === 'location') {
+            fieldData.location_settings = {
+                default_zoom: document.getElementById('location_default_zoom').value,
+                use_wechat: document.getElementById('location_use_wechat').checked
+            };
+            
+            // 将位置设置转换为JSON字符串存储在options字段中
+            fieldData.options = JSON.stringify(fieldData.location_settings);
+        }
+        
+        // 转换步骤设置为JSON字符串
+        fieldData.visible_steps_json = JSON.stringify(fieldData.visible_steps);
+        fieldData.editable_steps_json = JSON.stringify(fieldData.editable_steps);
+        
+        // 发送到服务器保存
+        // 这里替换为实际的保存逻辑
+        
+        // 关闭模态框
+        var modal = bootstrap.Modal.getInstance(document.getElementById('formFieldModal'));
+        modal.hide();
+    });
+    
+    // 打开编辑字段模态框时的处理
+    window.editFormField = function(fieldData) {
+        // 清空选项
+        optionsContainer.innerHTML = '';
+        optionCount = 0;
+        
+        // 填充表单数据
+        document.getElementById('field_id').value = fieldData.id || '';
+        document.getElementById('field_name').value = fieldData.name || '';
+        document.getElementById('field_label').value = fieldData.label || '';
+        document.getElementById('field_type').value = fieldData.field_type || 'text';
+        document.getElementById('field_order').value = fieldData.order || 1;
+        document.getElementById('field_required').checked = fieldData.is_required || false;
+        document.getElementById('field_placeholder').value = fieldData.placeholder || '';
+        document.getElementById('field_default').value = fieldData.default_value || '';
+        
+        // 处理可见性设置
+        let visibleSteps = [];
+        try {
+            if (fieldData.visible_steps) {
+                visibleSteps = JSON.parse(fieldData.visible_steps);
+            }
+        } catch (e) {
+            console.error('解析可见步骤数据失败', e);
+        }
+        
+        if (visibleSteps.length > 0) {
+            document.getElementById('visibility_specific').checked = true;
+            visibleStepsContainer.classList.remove('d-none');
+            
+            // 选中指定的步骤
+            visibleSteps.forEach(function(stepId) {
+                const checkbox = document.getElementById(`visible_step_${stepId}`);
+                if (checkbox) checkbox.checked = true;
+            });
+        } else {
+            document.getElementById('visibility_all').checked = true;
+            visibleStepsContainer.classList.add('d-none');
+        }
+        
+        // 处理可编辑性设置
+        let editableSteps = [];
+        try {
+            if (fieldData.editable_steps) {
+                editableSteps = JSON.parse(fieldData.editable_steps);
+            }
+        } catch (e) {
+            console.error('解析可编辑步骤数据失败', e);
+        }
+        
+        if (editableSteps.length === 1 && editableSteps[0] === -1) {
+            // 特殊标记：没有步骤可编辑
+            document.getElementById('editable_none').checked = true;
+            editableStepsContainer.classList.add('d-none');
+        } else if (editableSteps.length > 0) {
+            document.getElementById('editable_specific').checked = true;
+            editableStepsContainer.classList.remove('d-none');
+            
+            // 选中指定的步骤
+            editableSteps.forEach(function(stepId) {
+                const checkbox = document.getElementById(`editable_step_${stepId}`);
+                if (checkbox) checkbox.checked = true;
+            });
+        } else {
+            document.getElementById('editable_all').checked = true;
+            editableStepsContainer.classList.add('d-none');
+        }
+        
+        // 触发字段类型变化事件
+        fieldTypeSelect.dispatchEvent(new Event('change'));
+        
+        // 如果有选项数据，添加选项
+        if (fieldData.options) {
+            try {
+                if (fieldData.field_type === 'select' || fieldData.field_type === 'radio' || fieldData.field_type === 'checkbox') {
+                    const options = JSON.parse(fieldData.options);
+                    options.forEach(option => addOption(option));
+                } else if (fieldData.field_type === 'location') {
+                    const locationSettings = JSON.parse(fieldData.options);
+                    document.getElementById('location_default_zoom').value = locationSettings.default_zoom || 13;
+                    document.getElementById('location_use_wechat').checked = locationSettings.use_wechat || false;
+                }
+            } catch (e) {
+                console.error('解析选项数据失败', e);
+            }
+        }
+        
+        // 打开模态框
+        var modal = new bootstrap.Modal(document.getElementById('formFieldModal'));
+        modal.show();
+    };
+});
+</script> 

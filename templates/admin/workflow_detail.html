@@ -1,0 +1,253 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}工作流详情 - {{ workflow.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">工作流详情</h2>
+        <div>
+            {% if workflow.status == '草稿' %}
+            <a href="{{ url_for('workflow.edit_workflow', workflow_id=workflow.id) }}" class="btn btn-primary">
+                <i class="fas fa-edit"></i> 编辑工作流
+            </a>
+            <a href="{{ url_for('workflow.publish_workflow', workflow_id=workflow.id) }}" class="btn btn-success">
+                <i class="fas fa-check"></i> 发布工作流
+            </a>
+            {% elif workflow.status == '已发布' %}
+            <form method="POST" action="{{ url_for('workflow.unpublish_workflow', workflow_id=workflow.id) }}" class="d-inline">
+                <button type="submit" class="btn btn-warning" onclick="return confirm('确定要下线此工作流吗？')">
+                    <i class="fas fa-power-off"></i> 下线工作流
+                </button>
+            </form>
+            <form method="POST" action="{{ url_for('workflow.new_workflow_version', workflow_id=workflow.id) }}" class="d-inline">
+                <button type="submit" class="btn btn-info">
+                    <i class="fas fa-code-branch"></i> 创建新版本
+                </button>
+            </form>
+            {% elif workflow.status == '已下线' %}
+            <form method="POST" action="{{ url_for('workflow.new_workflow_version', workflow_id=workflow.id) }}" class="d-inline">
+                <button type="submit" class="btn btn-info">
+                    <i class="fas fa-code-branch"></i> 创建新版本
+                </button>
+            </form>
+            {% endif %}
+            <a href="{{ url_for('workflow.workflows') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> 返回列表
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 工作流基本信息 -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">基本信息</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th style="width: 30%">名称</th>
+                            <td>{{ workflow.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>描述</th>
+                            <td>{{ workflow.description }}</td>
+                        </tr>
+                        <tr>
+                            <th>状态</th>
+                            <td>
+                                {% if workflow.status == '草稿' %}
+                                <span class="badge bg-secondary">草稿</span>
+                                {% elif workflow.status == '已发布' %}
+                                <span class="badge bg-success">已发布</span>
+                                {% elif workflow.status == '已下线' %}
+                                <span class="badge bg-warning">已下线</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>版本</th>
+                            <td>{{ workflow.version }}</td>
+                        </tr>
+                        <tr>
+                            <th>创建时间</th>
+                            <td>{{ workflow.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        </tr>
+                        <tr>
+                            <th>最后更新</th>
+                            <td>{{ workflow.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        </tr>
+                        {% if workflow.status == '已发布' or workflow.status == '已下线' %}
+                        <tr>
+                            <th>发布时间</th>
+                            <td>{{ workflow.published_at.strftime('%Y-%m-%d %H:%M:%S') if workflow.published_at else '' }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if workflow.start_date or workflow.end_date %}
+                        <tr>
+                            <th>有效期</th>
+                            <td>
+                                {% if workflow.start_date and workflow.end_date %}
+                                {{ workflow.start_date.strftime('%Y-%m-%d') }} 至 {{ workflow.end_date.strftime('%Y-%m-%d') }}
+                                {% elif workflow.start_date %}
+                                {{ workflow.start_date.strftime('%Y-%m-%d') }} 起
+                                {% elif workflow.end_date %}
+                                截至 {{ workflow.end_date.strftime('%Y-%m-%d') }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 权限配置 -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">访问权限配置</h5>
+                </div>
+                <div class="card-body">
+                    {% if not user_permissions and not role_permissions %}
+                    <div class="alert alert-info">
+                        未配置特定权限，所有用户均可发起此工作流
+                    </div>
+                    {% else %}
+                    <h6>指定用户</h6>
+                    {% if user_permissions %}
+                    <ul class="list-group mb-3">
+                        {% for user in user_permissions %}
+                        <li class="list-group-item">{{ user.username }} ({{ user.name }})</li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted">未指定特定用户</p>
+                    {% endif %}
+                    
+                    <h6>指定角色</h6>
+                    {% if role_permissions %}
+                    <ul class="list-group">
+                        {% for role in role_permissions %}
+                        <li class="list-group-item">{{ role.name }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted">未指定特定角色</p>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 工作流步骤 -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">工作流步骤</h5>
+                </div>
+                <div class="card-body">
+                    {% if steps %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>步骤名称</th>
+                                    <th>描述</th>
+                                    <th>处理角色</th>
+                                    <th>关联表单</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for step in steps %}
+                                <tr>
+                                    <td>{{ step.order }}</td>
+                                    <td>{{ step.name }}</td>
+                                    <td>{{ step.description }}</td>
+                                    <td>{{ step.role.name if step.role else '未指定' }}</td>
+                                    <td>{{ step.form.name if step.form else '无表单' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        尚未配置工作流步骤
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 工作流表单 -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">工作流表单</h5>
+                </div>
+                <div class="card-body">
+                    {% if forms %}
+                    <div class="accordion" id="accordionForms">
+                        {% for form in forms %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="heading{{ form.id }}">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ form.id }}" aria-expanded="false" aria-controls="collapse{{ form.id }}">
+                                    {{ form.name }}
+                                </button>
+                            </h2>
+                            <div id="collapse{{ form.id }}" class="accordion-collapse collapse" aria-labelledby="heading{{ form.id }}" data-bs-parent="#accordionForms">
+                                <div class="accordion-body">
+                                    <p>{{ form.description }}</p>
+                                    {% set fields = form.fields %}
+                                    {% if fields %}
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>字段名</th>
+                                                <th>标签</th>
+                                                <th>类型</th>
+                                                <th>必填</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for field in fields %}
+                                            <tr>
+                                                <td>{{ field.order }}</td>
+                                                <td>{{ field.name }}</td>
+                                                <td>{{ field.label }}</td>
+                                                <td>{{ dict(FormField.get_field_types()).get(field.field_type) }}</td>
+                                                <td>{{ '是' if field.is_required else '否' }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                    {% else %}
+                                    <div class="alert alert-light">
+                                        此表单尚未添加字段
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        尚未创建表单
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

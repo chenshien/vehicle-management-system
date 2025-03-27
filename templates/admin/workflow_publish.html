@@ -1,0 +1,117 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}发布工作流 - {{ workflow.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">发布工作流</h2>
+        <div>
+            <a href="{{ url_for('workflow.workflow_detail', workflow_id=workflow.id) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> 返回详情
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">{{ workflow.name }}</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('workflow.publish_workflow', workflow_id=workflow.id) }}">
+                        <div class="row">
+                            <!-- 有效期设置 -->
+                            <div class="col-md-6">
+                                <div class="mb-4">
+                                    <h5>有效期设置</h5>
+                                    <p class="text-muted">设置此工作流的有效时间范围，留空表示永久有效</p>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="start_date" class="form-label">开始日期</label>
+                                    <input type="date" class="form-control" id="start_date" name="start_date">
+                                    <div class="form-text">留空表示即刻生效</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="end_date" class="form-label">结束日期</label>
+                                    <input type="date" class="form-control" id="end_date" name="end_date">
+                                    <div class="form-text">留空表示永不过期</div>
+                                </div>
+                            </div>
+                            
+                            <!-- 权限设置 -->
+                            <div class="col-md-6">
+                                <div class="mb-4">
+                                    <h5>权限设置</h5>
+                                    <p class="text-muted">配置哪些用户或角色可以发起此工作流。如不选择，则所有用户均可发起</p>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">选择用户</label>
+                                    <select class="form-select" name="user_ids" multiple size="5">
+                                        {% for user in users %}
+                                        <option value="{{ user.id }}">{{ user.username }} ({{ user.name }})</option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="form-text">按住Ctrl键可多选</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">选择角色</label>
+                                    <select class="form-select" name="role_ids" multiple size="5">
+                                        {% for role in roles %}
+                                        <option value="{{ role.id }}">{{ role.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="form-text">按住Ctrl键可多选</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 确认发布 -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle"></i> 请确认工作流设计已完成，发布后将不能修改现有配置，只能通过创建新版本更新。
+                                </div>
+                                
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <a href="{{ url_for('workflow.workflow_detail', workflow_id=workflow.id) }}" class="btn btn-secondary">
+                                        取消
+                                    </a>
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-check-circle"></i> 确认发布
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // 如果需要增强表单体验，可以在这里添加JavaScript代码
+    document.addEventListener('DOMContentLoaded', function() {
+        // 示例：增加结束日期不能早于开始日期的验证
+        const startDateInput = document.getElementById('start_date');
+        const endDateInput = document.getElementById('end_date');
+        
+        if(startDateInput && endDateInput) {
+            startDateInput.addEventListener('change', function() {
+                if(startDateInput.value) {
+                    endDateInput.min = startDateInput.value;
+                }
+            });
+        }
+    });
+</script>
+{% endblock %} 

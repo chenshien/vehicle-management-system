@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+
+{% block title %}个人资料{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">个人信息</div>
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="fas fa-user-circle fa-7x text-primary"></i>
+                    </div>
+                    <h5 class="my-3">{{ current_user.name or current_user.username }}</h5>
+                    <p class="text-muted mb-1">{{ current_user.position or '职位未设置' }}</p>
+                    <p class="text-muted mb-4">{{ current_user.department or '部门未设置' }}</p>
+                </div>
+            </div>
+            <div class="card mb-4">
+                <div class="card-header">角色信息</div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for role in current_user.roles %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ role.name }}
+                            <span class="badge bg-primary rounded-pill">
+                                <i class="fas fa-check"></i>
+                            </span>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item">暂无角色信息</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>基本资料</div>
+                    <button class="btn btn-primary btn-sm" id="edit-profile-btn">
+                        <i class="fas fa-edit"></i> 编辑资料
+                    </button>
+                </div>
+                <div class="card-body">
+                    <form id="profile-form" method="POST" action="{{ url_for('auth.update_profile') }}" style="display: none;">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">用户名</label>
+                            <input type="text" class="form-control" id="username" name="username" value="{{ current_user.username }}" readonly>
+                            <div class="form-text">用户名不可修改</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">邮箱</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ current_user.email }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">姓名</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ current_user.name or '' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="department" class="form-label">部门</label>
+                            <input type="text" class="form-control" id="department" name="department" value="{{ current_user.department or '' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="position" class="form-label">职位</label>
+                            <input type="text" class="form-control" id="position" name="position" value="{{ current_user.position or '' }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">电话</label>
+                            <input type="text" class="form-control" id="phone" name="phone" value="{{ current_user.phone or '' }}">
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-secondary" id="cancel-edit-btn">取消</button>
+                            <button type="submit" class="btn btn-primary">保存</button>
+                        </div>
+                    </form>
+                    
+                    <div id="profile-info">
+                        <div class="row">
+                            <div class="col-sm-3">
+                                <p class="mb-0">用户名</p>
+                            </div>
+                            <div class="col-sm-9">
+                                <p class="text-muted mb-0">{{ current_user.username }}</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-sm-3">
+                                <p class="mb-0">邮箱</p>
+                            </div>
+                            <div class="col-sm-9">
+                                <p class="text-muted mb-0">{{ current_user.email }}</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-sm-3">
+                                <p class="mb-0">姓名</p>
+                            </div>
+                            <div class="col-sm-9">
+                                <p class="text-muted mb-0">{{ current_user.name or '未设置' }}</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-sm-3">
+                                <p class="mb-0">部门</p>
+                            </div>
+                            <div class="col-sm-9">
+                                <p class="text-muted mb-0">{{ current_user.department or '未设置' }}</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-sm-3">
+                                <p class="mb-0">职位</p>
+                            </div>
+                            <div class="col-sm-9">
+                                <p class="text-muted mb-0">{{ current_user.position or '未设置' }}</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-sm-3">
+                                <p class="mb-0">电话</p>
+                            </div>
+                            <div class="col-sm-9">
+                                <p class="text-muted mb-0">{{ current_user.phone or '未设置' }}</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-sm-3">
+                                <p class="mb-0">账号状态</p>
+                            </div>
+                            <div class="col-sm-9">
+                                <p class="text-muted mb-0">
+                                    {% if current_user.is_active %}
+                                    <span class="badge bg-success">已激活</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">未激活</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">修改密码</div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('auth.change_password') }}">
+                        <div class="mb-3">
+                            <label for="current_password" class="form-label">当前密码</label>
+                            <input type="password" class="form-control" id="current_password" name="current_password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label">新密码</label>
+                            <input type="password" class="form-control" id="new_password" name="new_password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirm_password" class="form-label">确认新密码</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">修改密码</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const editBtn = document.getElementById('edit-profile-btn');
+        const cancelBtn = document.getElementById('cancel-edit-btn');
+        const profileForm = document.getElementById('profile-form');
+        const profileInfo = document.getElementById('profile-info');
+        
+        editBtn.addEventListener('click', function() {
+            profileForm.style.display = 'block';
+            profileInfo.style.display = 'none';
+        });
+        
+        cancelBtn.addEventListener('click', function() {
+            profileForm.style.display = 'none';
+            profileInfo.style.display = 'block';
+        });
+    });
+</script>
+{% endblock %} 

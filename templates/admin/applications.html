@@ -1,0 +1,131 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}申请管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">申请管理</h2>
+        <div>
+            <a href="{{ url_for('admin.export_applications') }}" class="btn btn-success me-2">
+                <i class="fas fa-file-excel"></i> 导出数据
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>标题</th>
+                            <th>申请人</th>
+                            <th>工作流</th>
+                            <th>车辆</th>
+                            <th>状态</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for application in applications %}
+                        <tr>
+                            <td>{{ application.id }}</td>
+                            <td>{{ application.title }}</td>
+                            <td>{{ application.user.name }}</td>
+                            <td>{{ application.workflow.name }}</td>
+                            <td>{{ application.vehicle.plate_number if application.vehicle else '-' }}</td>
+                            <td>
+                                {% if application.status.name == '待提交' %}
+                                <span class="badge bg-secondary">{{ application.status.name }}</span>
+                                {% elif application.status.name == '审批中' %}
+                                <span class="badge bg-info">{{ application.status.name }}</span>
+                                {% elif application.status.name == '已通过' %}
+                                <span class="badge bg-success">{{ application.status.name }}</span>
+                                {% elif application.status.name == '已拒绝' %}
+                                <span class="badge bg-danger">{{ application.status.name }}</span>
+                                {% elif application.status.name == '已取消' %}
+                                <span class="badge bg-warning">{{ application.status.name }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ application.status.name }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ application.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{{ url_for('admin.application_detail', application_id=application.id) }}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye"></i> 查看
+                                    </a>
+                                    
+                                    {% if application.status.name == '审批中' %}
+                                    <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#approveModal{{ application.id }}">
+                                        <i class="fas fa-check"></i> 通过
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal{{ application.id }}">
+                                        <i class="fas fa-times"></i> 拒绝
+                                    </button>
+                                    
+                                    <!-- 通过确认对话框 -->
+                                    <div class="modal fade" id="approveModal{{ application.id }}" tabindex="-1" aria-labelledby="approveModalLabel{{ application.id }}" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="approveModalLabel{{ application.id }}">确认通过申请</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    您确定要通过ID为 <strong>{{ application.id }}</strong> 的申请吗？
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                                    <form method="POST" action="{{ url_for('admin.approve_application', application_id=application.id) }}">
+                                                        <button type="submit" class="btn btn-success">确认通过</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 拒绝确认对话框 -->
+                                    <div class="modal fade" id="rejectModal{{ application.id }}" tabindex="-1" aria-labelledby="rejectModalLabel{{ application.id }}" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="rejectModalLabel{{ application.id }}">确认拒绝申请</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <p>您确定要拒绝ID为 <strong>{{ application.id }}</strong> 的申请吗？</p>
+                                                    <div class="mb-3">
+                                                        <label for="rejectReason{{ application.id }}" class="form-label">拒绝原因</label>
+                                                        <textarea class="form-control" id="rejectReason{{ application.id }}" name="reason" rows="3" required></textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                                    <form method="POST" action="{{ url_for('admin.reject_application', application_id=application.id) }}">
+                                                        <input type="hidden" name="reason" id="hiddenRejectReason{{ application.id }}">
+                                                        <button type="submit" class="btn btn-danger" onclick="document.getElementById('hiddenRejectReason{{ application.id }}').value = document.getElementById('rejectReason{{ application.id }}').value">确认拒绝</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center">暂无申请数据</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

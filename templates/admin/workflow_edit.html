@@ -1,0 +1,76 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}编辑工作流{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">编辑工作流</h2>
+        <div>
+            <a href="{{ url_for('admin.workflow_steps', workflow_id=workflow.id) }}" class="btn btn-info me-2">
+                <i class="fas fa-list-ol"></i> 管理步骤
+            </a>
+            <a href="{{ url_for('admin.workflow_forms', workflow_id=workflow.id) }}" class="btn btn-info me-2">
+                <i class="fas fa-file-alt"></i> 管理表单
+            </a>
+            <a href="{{ url_for('admin.workflows') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> 返回列表
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">基本信息</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('admin.edit_workflow', workflow_id=workflow.id) }}">
+                <div class="mb-3">
+                    <label for="name" class="form-label">工作流名称 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ workflow.name }}" required>
+                    <div class="form-text">为工作流设置一个清晰、有描述性的名称</div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="description" class="form-label">描述</label>
+                    <textarea class="form-control" id="description" name="description" rows="3">{{ workflow.description or '' }}</textarea>
+                    <div class="form-text">描述此工作流的用途、适用场景等信息</div>
+                </div>
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary">保存更改</button>
+                    <a href="{{ url_for('admin.workflows') }}" class="btn btn-secondary">取消</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">工作流信息</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>创建时间：</strong> {{ workflow.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                    <p><strong>更新时间：</strong> {{ workflow.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                    <p><strong>状态：</strong> {{ workflow.status }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>版本：</strong> v{{ workflow.version }}</p>
+                    <p><strong>创建人：</strong> {{ workflow.creator.name if workflow.creator else '未知' }}</p>
+                    <p><strong>步骤数量：</strong> {{ workflow.steps|length }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-end">
+        <form method="POST" action="{{ url_for('admin.delete_workflow', workflow_id=workflow.id) }}" class="d-inline" onsubmit="return confirm('确定要删除此工作流吗？此操作不可恢复！')">
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash"></i> 删除工作流
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %} 

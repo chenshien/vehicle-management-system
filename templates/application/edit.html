@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% from 'components/form_renderer.html' import render_form %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4>编辑申请: {{ application.title }}</h4>
+                <div class="badge bg-info">{{ application.status.name }}</div>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% if current_step and current_step.form %}
+                        <h5>{{ current_step.form.name }}</h5>
+                        <p>{{ current_step.form.description }}</p>
+                        {{ render_form(current_step.form, form_data, False, current_step.id) }}
+                    {% else %}
+                        <div class="alert alert-warning">
+                            当前步骤未配置表单，无需填写内容。
+                        </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('application.my_applications') }}" class="btn btn-secondary">返回</a>
+                        <div>
+                            <button type="submit" class="btn btn-primary" name="save">保存草稿</button>
+                            <button type="submit" class="btn btn-success" name="submit">提交申请</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

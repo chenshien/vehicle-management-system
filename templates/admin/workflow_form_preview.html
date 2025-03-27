@@ -1,0 +1,214 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}表单预览 - {{ form.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">表单预览</h2>
+        <div>
+            <a href="{{ url_for('admin.workflow_form_fields', form_id=form.id) }}" class="btn btn-info me-2">
+                <i class="fas fa-list"></i> 返回字段管理
+            </a>
+            <a href="{{ url_for('admin.edit_workflow_form', form_id=form.id) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> 返回表单编辑
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">{{ form.name }}</h5>
+        </div>
+        <div class="card-body">
+            <p class="mb-3">{{ form.description or '无描述' }}</p>
+            <p><strong>所属工作流：</strong> {{ workflow.name }}</p>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">表单预览</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> 这是表单的预览模式，所有操作都不会被保存。
+            </div>
+            
+            <form id="preview-form" class="mt-4">
+                {% for field in fields %}
+                <div class="mb-4">
+                    <label for="{{ field.name }}" class="form-label">
+                        {{ field.label }}
+                        {% if field.is_required %}
+                        <span class="text-danger">*</span>
+                        {% endif %}
+                    </label>
+                    
+                    {% if field.field_type == 'text' %}
+                    <input type="text" class="form-control" id="{{ field.name }}" name="{{ field.name }}" 
+                           placeholder="{{ field.placeholder or '' }}" value="{{ field.default_value or '' }}"
+                           {% if field.is_required %}required{% endif %}>
+                    
+                    {% elif field.field_type == 'textarea' %}
+                    <textarea class="form-control" id="{{ field.name }}" name="{{ field.name }}" rows="3"
+                              placeholder="{{ field.placeholder or '' }}"
+                              {% if field.is_required %}required{% endif %}>{{ field.default_value or '' }}</textarea>
+                    
+                    {% elif field.field_type == 'number' %}
+                    <input type="number" class="form-control" id="{{ field.name }}" name="{{ field.name }}"
+                           placeholder="{{ field.placeholder or '' }}" value="{{ field.default_value or '' }}"
+                           {% if field.is_required %}required{% endif %}>
+                    
+                    {% elif field.field_type == 'date' %}
+                    <input type="date" class="form-control" id="{{ field.name }}" name="{{ field.name }}"
+                           value="{{ field.default_value or '' }}"
+                           {% if field.is_required %}required{% endif %}>
+                    
+                    {% elif field.field_type == 'datetime' %}
+                    <input type="datetime-local" class="form-control" id="{{ field.name }}" name="{{ field.name }}"
+                           value="{{ field.default_value or '' }}"
+                           {% if field.is_required %}required{% endif %}>
+                    
+                    {% elif field.field_type == 'select' %}
+                    <select class="form-select" id="{{ field.name }}" name="{{ field.name }}"
+                            {% if field.is_required %}required{% endif %}>
+                        <option value="">-- 请选择 --</option>
+                        {% if field.options %}
+                            {% for option in field.get_options() %}
+                            <option value="{{ option.value }}" {% if field.default_value == option.value %}selected{% endif %}>
+                                {{ option.label }}
+                            </option>
+                            {% endfor %}
+                        {% endif %}
+                    </select>
+                    
+                    {% elif field.field_type == 'radio' %}
+                    <div>
+                        {% if field.options %}
+                            {% for option in field.get_options() %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="{{ field.name }}" 
+                                       id="{{ field.name }}_{{ loop.index }}" value="{{ option.value }}"
+                                       {% if field.default_value == option.value %}checked{% endif %}
+                                       {% if field.is_required and loop.first %}required{% endif %}>
+                                <label class="form-check-label" for="{{ field.name }}_{{ loop.index }}">
+                                    {{ option.label }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    
+                    {% elif field.field_type == 'checkbox' %}
+                    <div>
+                        {% if field.options %}
+                            {% for option in field.get_options() %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="{{ field.name }}[]" 
+                                       id="{{ field.name }}_{{ loop.index }}" value="{{ option.value }}">
+                                <label class="form-check-label" for="{{ field.name }}_{{ loop.index }}">
+                                    {{ option.label }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    
+                    {% elif field.field_type == 'file' %}
+                    <input type="file" class="form-control" id="{{ field.name }}" name="{{ field.name }}"
+                           {% if field.is_required %}required{% endif %}>
+                    
+                    {% elif field.field_type == 'location' %}
+                    <div class="location-picker">
+                        <div class="mb-2">
+                            <input type="text" class="form-control" id="{{ field.name }}_search" 
+                                   placeholder="搜索位置...">
+                        </div>
+                        <div id="{{ field.name }}_map" style="height: 300px; width: 100%;"></div>
+                        <input type="hidden" id="{{ field.name }}" name="{{ field.name }}" 
+                               value="{{ field.default_value or '' }}"
+                               {% if field.is_required %}required{% endif %}>
+                    </div>
+                    {% endif %}
+                    
+                    {% if field.field_type == 'location' %}
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            initLocationPicker('{{ field.name }}');
+                        });
+                    </script>
+                    {% endif %}
+                    
+                    {% if field.placeholder %}
+                    <div class="form-text">{{ field.placeholder }}</div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> 该表单没有字段，请先添加字段。
+                </div>
+                {% endfor %}
+                
+                <div class="text-center mt-4">
+                    <button type="button" class="btn btn-primary" id="test-submit-btn">测试提交</button>
+                    <button type="reset" class="btn btn-secondary">重置</button>
+                </div>
+            </form>
+            
+            <div class="mt-4" id="submission-result" style="display: none;">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">表单提交结果</h5>
+                    </div>
+                    <div class="card-body">
+                        <pre id="form-data" class="bg-light p-3 rounded"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const previewForm = document.getElementById('preview-form');
+        const testSubmitBtn = document.getElementById('test-submit-btn');
+        const submissionResult = document.getElementById('submission-result');
+        const formDataOutput = document.getElementById('form-data');
+        
+        testSubmitBtn.addEventListener('click', function() {
+            // 表单验证
+            const isValid = previewForm.checkValidity();
+            if (!isValid) {
+                previewForm.reportValidity();
+                return;
+            }
+            
+            // 收集表单数据
+            const formData = new FormData(previewForm);
+            let formDataObj = {};
+            
+            for (let [key, value] of formData.entries()) {
+                // 处理数组值（如复选框）
+                if (key.endsWith('[]')) {
+                    const realKey = key.slice(0, -2);
+                    if (!formDataObj[realKey]) {
+                        formDataObj[realKey] = [];
+                    }
+                    formDataObj[realKey].push(value);
+                } else {
+                    formDataObj[key] = value;
+                }
+            }
+            
+            // 显示数据
+            formDataOutput.textContent = JSON.stringify(formDataObj, null, 2);
+            submissionResult.style.display = 'block';
+            
+            // 滚动到结果区域
+            submissionResult.scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+</script>
+{% endblock %} 

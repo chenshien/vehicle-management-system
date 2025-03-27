@@ -1,0 +1,104 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}工作流管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">工作流管理</h2>
+        <a href="{{ url_for('workflow.create_workflow') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> 创建工作流
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>名称</th>
+                            <th>状态</th>
+                            <th>版本</th>
+                            <th>有效期</th>
+                            <th>更新时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for workflow in workflows %}
+                        <tr>
+                            <td>{{ workflow.id }}</td>
+                            <td>{{ workflow.name }}</td>
+                            <td>
+                                {% if workflow.status == '草稿' %}
+                                <span class="badge bg-secondary">草稿</span>
+                                {% elif workflow.status == '已发布' %}
+                                <span class="badge bg-success">已发布</span>
+                                {% elif workflow.status == '已下线' %}
+                                <span class="badge bg-warning">已下线</span>
+                                {% endif %}
+                            </td>
+                            <td>v{{ workflow.version }}</td>
+                            <td>
+                                {% if workflow.status == '已发布' %}
+                                    {% if workflow.start_date and workflow.end_date %}
+                                    {{ workflow.start_date.strftime('%Y-%m-%d') }} 至 {{ workflow.end_date.strftime('%Y-%m-%d') }}
+                                    {% elif workflow.start_date %}
+                                    {{ workflow.start_date.strftime('%Y-%m-%d') }} 起
+                                    {% elif workflow.end_date %}
+                                    截至 {{ workflow.end_date.strftime('%Y-%m-%d') }}
+                                    {% else %}
+                                    永久有效
+                                    {% endif %}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                            <td>{{ workflow.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a href="{{ url_for('workflow.workflow_detail', workflow_id=workflow.id) }}" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if workflow.status == '草稿' %}
+                                    <a href="{{ url_for('workflow.edit_workflow', workflow_id=workflow.id) }}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{{ url_for('workflow.publish_workflow', workflow_id=workflow.id) }}" class="btn btn-sm btn-success">
+                                        <i class="fas fa-check"></i>
+                                    </a>
+                                    {% elif workflow.status == '已发布' %}
+                                    <form method="POST" action="{{ url_for('workflow.unpublish_workflow', workflow_id=workflow.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('确定要下线此工作流吗？')">
+                                            <i class="fas fa-power-off"></i>
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('workflow.new_workflow_version', workflow_id=workflow.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-secondary">
+                                            <i class="fas fa-code-branch"></i>
+                                        </button>
+                                    </form>
+                                    {% elif workflow.status == '已下线' %}
+                                    <form method="POST" action="{{ url_for('workflow.new_workflow_version', workflow_id=workflow.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-secondary">
+                                            <i class="fas fa-code-branch"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center">暂无工作流，请创建</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

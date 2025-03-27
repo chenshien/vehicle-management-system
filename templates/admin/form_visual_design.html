@@ -1,0 +1,713 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}表单可视化设计 - {{ form.name }}{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .form-design-container {
+        min-height: 500px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 20px;
+        background-color: #f8f9fa;
+    }
+    .form-field-item {
+        background-color: white;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        padding: 15px;
+        position: relative;
+        cursor: move;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .form-field-item:hover {
+        box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    }
+    .form-field-item.dragging {
+        opacity: 0.5;
+    }
+    .field-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    .field-title {
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+    }
+    .field-type-badge {
+        font-size: 0.7rem;
+        background-color: #e9ecef;
+        padding: 3px 8px;
+        border-radius: 10px;
+        margin-left: 10px;
+    }
+    .field-actions {
+        display: flex;
+        gap: 5px;
+    }
+    .field-config {
+        background-color: #f8f9fa;
+        border-top: 1px solid #dee2e6;
+        margin-top: 10px;
+        padding-top: 10px;
+        display: none;
+    }
+    .field-config.show {
+        display: block;
+    }
+    .add-field-placeholder {
+        border: 2px dashed #dee2e6;
+        border-radius: 5px;
+        padding: 15px;
+        text-align: center;
+        margin-top: 20px;
+        color: #6c757d;
+        background-color: white;
+    }
+    .palette-item {
+        background-color: white;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 10px 15px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+    }
+    .palette-item:hover {
+        background-color: #e9ecef;
+    }
+    .palette-item i {
+        margin-right: 10px;
+        font-size: 1.2rem;
+    }
+    .palette-group {
+        margin-bottom: 15px;
+    }
+    .palette-group-title {
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #495057;
+    }
+    .preview-section {
+        margin-top: 30px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">表单可视化设计</h2>
+        <div>
+            <button id="save-form" class="btn btn-success me-2">
+                <i class="fas fa-save"></i> 保存表单
+            </button>
+            <a href="{{ url_for('admin.preview_form', form_id=form.id) }}" class="btn btn-info me-2" target="_blank">
+                <i class="fas fa-eye"></i> 预览表单
+            </a>
+            <a href="{{ url_for('admin.workflow_form_fields', form_id=form.id) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> 返回表单
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">{{ form.name }}</h5>
+        </div>
+        <div class="card-body">
+            <p>{{ form.description or '无描述' }}</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 左侧字段列表 -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">表单设计</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-design-container" id="form-fields-container">
+                        {% if fields %}
+                            {% for field in fields %}
+                            <div class="form-field-item" data-field-id="{{ field.id }}" data-field-type="{{ field.field_type }}">
+                                <div class="field-header">
+                                    <div class="field-title">
+                                        {{ field.label }}
+                                        <span class="field-type-badge">{{ field.field_type }}</span>
+                                    </div>
+                                    <div class="field-actions">
+                                        <button type="button" class="btn btn-sm btn-outline-primary field-config-toggle">
+                                            <i class="fas fa-cog"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger field-delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="field-preview">
+                                    {% if field.is_required %}
+                                        <span class="text-danger">*</span>
+                                    {% endif %}
+                                    
+                                    {% if field.field_type == 'text' %}
+                                        <input type="text" class="form-control" placeholder="{{ field.placeholder or '' }}" disabled>
+                                    {% elif field.field_type == 'textarea' %}
+                                        <textarea class="form-control" rows="2" placeholder="{{ field.placeholder or '' }}" disabled></textarea>
+                                    {% elif field.field_type == 'number' %}
+                                        <input type="number" class="form-control" placeholder="{{ field.placeholder or '' }}" disabled>
+                                    {% elif field.field_type == 'date' %}
+                                        <input type="date" class="form-control" disabled>
+                                    {% elif field.field_type == 'datetime' %}
+                                        <input type="datetime-local" class="form-control" disabled>
+                                    {% elif field.field_type == 'select' %}
+                                        <select class="form-select" disabled>
+                                            <option>{{ field.placeholder or '请选择...' }}</option>
+                                            {% if field.options %}
+                                                {% for option in field.options.split(',') %}
+                                                    <option>{{ option.strip() }}</option>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </select>
+                                    {% elif field.field_type == 'radio' %}
+                                        <div>
+                                            {% if field.options %}
+                                                {% for option in field.options.split(',') %}
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" disabled>
+                                                        <label class="form-check-label">{{ option.strip() }}</label>
+                                                    </div>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </div>
+                                    {% elif field.field_type == 'checkbox' %}
+                                        <div>
+                                            {% if field.options %}
+                                                {% for option in field.options.split(',') %}
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" disabled>
+                                                        <label class="form-check-label">{{ option.strip() }}</label>
+                                                    </div>
+                                                {% endfor %}
+                                            {% endif %}
+                                        </div>
+                                    {% elif field.field_type == 'file' %}
+                                        <input type="file" class="form-control" disabled>
+                                    {% elif field.field_type == 'location' %}
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" placeholder="选择位置..." disabled>
+                                            <button class="btn btn-outline-secondary" type="button" disabled>
+                                                <i class="fas fa-map-marker-alt"></i>
+                                            </button>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    {% if field.help_text %}
+                                        <div class="form-text text-muted">{{ field.help_text }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="field-config">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">字段标签</label>
+                                            <input type="text" class="form-control field-label" value="{{ field.label }}">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">字段名</label>
+                                            <input type="text" class="form-control field-name" value="{{ field.name }}">
+                                        </div>
+                                        <div class="col-md-12">
+                                            <label class="form-label">占位文本</label>
+                                            <input type="text" class="form-control field-placeholder" value="{{ field.placeholder or '' }}">
+                                        </div>
+                                        <div class="col-md-12">
+                                            <label class="form-label">帮助文本</label>
+                                            <input type="text" class="form-control field-help-text" value="{{ field.help_text or '' }}">
+                                        </div>
+                                        {% if field.field_type in ['select', 'radio', 'checkbox'] %}
+                                        <div class="col-md-12">
+                                            <label class="form-label">选项 (用逗号分隔)</label>
+                                            <input type="text" class="form-control field-options" value="{{ field.options or '' }}">
+                                        </div>
+                                        {% endif %}
+                                        <div class="col-md-6">
+                                            <div class="form-check mt-2">
+                                                <input class="form-check-input field-required" type="checkbox" {% if field.is_required %}checked{% endif %}>
+                                                <label class="form-check-label">必填字段</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-5 text-muted">
+                                <i class="fas fa-info-circle fa-2x mb-3"></i>
+                                <p>当前表单没有字段，请从右侧添加字段</p>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="add-field-placeholder">
+                            <i class="fas fa-plus-circle"></i> 拖拽右侧字段类型到这里添加新字段
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 右侧字段类型列表 -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">字段类型</h5>
+                </div>
+                <div class="card-body">
+                    <div class="palette-group">
+                        <div class="palette-group-title">基础字段</div>
+                        <div class="palette-item" data-field-type="text">
+                            <i class="fas fa-font"></i> 文本框
+                        </div>
+                        <div class="palette-item" data-field-type="textarea">
+                            <i class="fas fa-align-left"></i> 多行文本
+                        </div>
+                        <div class="palette-item" data-field-type="number">
+                            <i class="fas fa-hashtag"></i> 数字
+                        </div>
+                    </div>
+                    
+                    <div class="palette-group">
+                        <div class="palette-group-title">日期时间</div>
+                        <div class="palette-item" data-field-type="date">
+                            <i class="fas fa-calendar-alt"></i> 日期
+                        </div>
+                        <div class="palette-item" data-field-type="datetime">
+                            <i class="fas fa-clock"></i> 日期时间
+                        </div>
+                    </div>
+                    
+                    <div class="palette-group">
+                        <div class="palette-group-title">选择字段</div>
+                        <div class="palette-item" data-field-type="select">
+                            <i class="fas fa-caret-square-down"></i> 下拉选择
+                        </div>
+                        <div class="palette-item" data-field-type="radio">
+                            <i class="fas fa-dot-circle"></i> 单选按钮
+                        </div>
+                        <div class="palette-item" data-field-type="checkbox">
+                            <i class="fas fa-check-square"></i> 复选框
+                        </div>
+                    </div>
+                    
+                    <div class="palette-group">
+                        <div class="palette-group-title">特殊字段</div>
+                        <div class="palette-item" data-field-type="file">
+                            <i class="fas fa-file-upload"></i> 文件上传
+                        </div>
+                        <div class="palette-item" data-field-type="location">
+                            <i class="fas fa-map-marker-alt"></i> 位置选择
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">操作说明</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-arrows-alt me-2"></i> 拖拽字段调整顺序</li>
+                        <li><i class="fas fa-plus-circle me-2"></i> 从右侧拖拽添加新字段</li>
+                        <li><i class="fas fa-cog me-2"></i> 点击配置图标设置字段属性</li>
+                        <li><i class="fas fa-trash me-2"></i> 点击删除图标移除字段</li>
+                        <li><i class="fas fa-save me-2"></i> 点击保存按钮保存表单</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 字段创建模态框 -->
+<div class="modal fade" id="field-create-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加<span id="field-type-label"></span>字段</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="field-create-form">
+                    <input type="hidden" id="new-field-type">
+                    <div class="mb-3">
+                        <label for="new-field-label" class="form-label">字段标签 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="new-field-label" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new-field-name" class="form-label">字段名 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="new-field-name" required>
+                        <div class="form-text">用于表单提交的字段标识，只能包含字母、数字和下划线</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new-field-placeholder" class="form-label">占位文本</label>
+                        <input type="text" class="form-control" id="new-field-placeholder">
+                    </div>
+                    <div class="mb-3">
+                        <label for="new-field-help" class="form-label">帮助文本</label>
+                        <input type="text" class="form-control" id="new-field-help">
+                    </div>
+                    <div class="mb-3" id="new-field-options-container" style="display: none;">
+                        <label for="new-field-options" class="form-label">选项 (用逗号分隔) <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="new-field-options" placeholder="选项1, 选项2, 选项3">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input type="checkbox" class="form-check-input" id="new-field-required">
+                        <label class="form-check-label" for="new-field-required">必填字段</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="create-field-btn">添加</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 保存成功提示 -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 5">
+    <div id="save-toast" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header bg-success text-white">
+            <strong class="me-auto">成功</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            表单设计已成功保存！
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='vendor/sortablejs/Sortable.min.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 初始化字段拖拽排序
+        const fieldsContainer = document.getElementById('form-fields-container');
+        const fieldsSortable = new Sortable(fieldsContainer, {
+            animation: 150,
+            handle: '.field-header',
+            ghostClass: 'dragging',
+            onEnd: function() {
+                // 重新排序后可以在这里处理
+            }
+        });
+        
+        // 字段配置显示/隐藏
+        document.querySelectorAll('.field-config-toggle').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const fieldItem = this.closest('.form-field-item');
+                const config = fieldItem.querySelector('.field-config');
+                config.classList.toggle('show');
+            });
+        });
+        
+        // 删除字段
+        document.querySelectorAll('.field-delete').forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (confirm('确定要删除此字段吗？')) {
+                    this.closest('.form-field-item').remove();
+                }
+            });
+        });
+        
+        // 从右侧拖拽新字段到表单
+        document.querySelectorAll('.palette-item').forEach(item => {
+            item.addEventListener('dragstart', function(e) {
+                e.dataTransfer.setData('field-type', this.getAttribute('data-field-type'));
+            });
+            
+            // 用点击替代拖拽
+            item.addEventListener('click', function() {
+                const fieldType = this.getAttribute('data-field-type');
+                document.getElementById('new-field-type').value = fieldType;
+                document.getElementById('field-type-label').textContent = this.textContent.trim();
+                
+                // 根据字段类型显示或隐藏选项输入框
+                const optionsContainer = document.getElementById('new-field-options-container');
+                if (['select', 'radio', 'checkbox'].includes(fieldType)) {
+                    optionsContainer.style.display = 'block';
+                } else {
+                    optionsContainer.style.display = 'none';
+                }
+                
+                // 显示创建字段模态框
+                const modal = new bootstrap.Modal(document.getElementById('field-create-modal'));
+                modal.show();
+            });
+        });
+        
+        // 添加新字段
+        document.getElementById('create-field-btn').addEventListener('click', function() {
+            const label = document.getElementById('new-field-label').value;
+            const name = document.getElementById('new-field-name').value;
+            const placeholder = document.getElementById('new-field-placeholder').value;
+            const helpText = document.getElementById('new-field-help').value;
+            const options = document.getElementById('new-field-options').value;
+            const required = document.getElementById('new-field-required').checked;
+            const fieldType = document.getElementById('new-field-type').value;
+            
+            // 验证
+            if (!label || !name) {
+                alert('字段标签和字段名是必填的');
+                return;
+            }
+            
+            if (!name.match(/^[a-zA-Z0-9_]+$/)) {
+                alert('字段名只能包含字母、数字和下划线');
+                return;
+            }
+            
+            if (['select', 'radio', 'checkbox'].includes(fieldType) && !options) {
+                alert('选择类字段需要至少一个选项');
+                return;
+            }
+            
+            // 创建字段预览HTML
+            let previewHtml = '';
+            
+            if (required) {
+                previewHtml += '<span class="text-danger">*</span> ';
+            }
+            
+            switch (fieldType) {
+                case 'text':
+                    previewHtml += `<input type="text" class="form-control" placeholder="${placeholder || ''}" disabled>`;
+                    break;
+                case 'textarea':
+                    previewHtml += `<textarea class="form-control" rows="2" placeholder="${placeholder || ''}" disabled></textarea>`;
+                    break;
+                case 'number':
+                    previewHtml += `<input type="number" class="form-control" placeholder="${placeholder || ''}" disabled>`;
+                    break;
+                case 'date':
+                    previewHtml += `<input type="date" class="form-control" disabled>`;
+                    break;
+                case 'datetime':
+                    previewHtml += `<input type="datetime-local" class="form-control" disabled>`;
+                    break;
+                case 'select':
+                    previewHtml += `<select class="form-select" disabled>
+                        <option>${placeholder || '请选择...'}</option>`;
+                    if (options) {
+                        options.split(',').forEach(option => {
+                            previewHtml += `<option>${option.trim()}</option>`;
+                        });
+                    }
+                    previewHtml += `</select>`;
+                    break;
+                case 'radio':
+                    previewHtml += `<div>`;
+                    if (options) {
+                        options.split(',').forEach(option => {
+                            previewHtml += `
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" disabled>
+                                    <label class="form-check-label">${option.trim()}</label>
+                                </div>`;
+                        });
+                    }
+                    previewHtml += `</div>`;
+                    break;
+                case 'checkbox':
+                    previewHtml += `<div>`;
+                    if (options) {
+                        options.split(',').forEach(option => {
+                            previewHtml += `
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" disabled>
+                                    <label class="form-check-label">${option.trim()}</label>
+                                </div>`;
+                        });
+                    }
+                    previewHtml += `</div>`;
+                    break;
+                case 'file':
+                    previewHtml += `<input type="file" class="form-control" disabled>`;
+                    break;
+                case 'location':
+                    previewHtml += `
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="选择位置..." disabled>
+                            <button class="btn btn-outline-secondary" type="button" disabled>
+                                <i class="fas fa-map-marker-alt"></i>
+                            </button>
+                        </div>`;
+                    break;
+            }
+            
+            if (helpText) {
+                previewHtml += `<div class="form-text text-muted">${helpText}</div>`;
+            }
+            
+            // 配置部分HTML
+            let configHtml = `
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">字段标签</label>
+                        <input type="text" class="form-control field-label" value="${label}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">字段名</label>
+                        <input type="text" class="form-control field-name" value="${name}">
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">占位文本</label>
+                        <input type="text" class="form-control field-placeholder" value="${placeholder || ''}">
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">帮助文本</label>
+                        <input type="text" class="form-control field-help-text" value="${helpText || ''}">
+                    </div>`;
+            
+            if (['select', 'radio', 'checkbox'].includes(fieldType)) {
+                configHtml += `
+                    <div class="col-md-12">
+                        <label class="form-label">选项 (用逗号分隔)</label>
+                        <input type="text" class="form-control field-options" value="${options || ''}">
+                    </div>`;
+            }
+            
+            configHtml += `
+                    <div class="col-md-6">
+                        <div class="form-check mt-2">
+                            <input class="form-check-input field-required" type="checkbox" ${required ? 'checked' : ''}>
+                            <label class="form-check-label">必填字段</label>
+                        </div>
+                    </div>
+                </div>`;
+            
+            // 创建字段HTML
+            const fieldId = 'new-' + Date.now();
+            const fieldHtml = `
+                <div class="form-field-item" data-field-id="${fieldId}" data-field-type="${fieldType}">
+                    <div class="field-header">
+                        <div class="field-title">
+                            ${label}
+                            <span class="field-type-badge">${fieldType}</span>
+                        </div>
+                        <div class="field-actions">
+                            <button type="button" class="btn btn-sm btn-outline-primary field-config-toggle">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger field-delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="field-preview">
+                        ${previewHtml}
+                    </div>
+                    
+                    <div class="field-config">
+                        ${configHtml}
+                    </div>
+                </div>`;
+            
+            // 添加到表单
+            const fieldPlaceholder = document.querySelector('.add-field-placeholder');
+            fieldPlaceholder.insertAdjacentHTML('beforebegin', fieldHtml);
+            
+            // 绑定新字段的事件
+            const newField = document.querySelector(`.form-field-item[data-field-id="${fieldId}"]`);
+            
+            const configToggle = newField.querySelector('.field-config-toggle');
+            configToggle.addEventListener('click', function() {
+                newField.querySelector('.field-config').classList.toggle('show');
+            });
+            
+            const deleteBtn = newField.querySelector('.field-delete');
+            deleteBtn.addEventListener('click', function() {
+                if (confirm('确定要删除此字段吗？')) {
+                    newField.remove();
+                }
+            });
+            
+            // 关闭模态框
+            bootstrap.Modal.getInstance(document.getElementById('field-create-modal')).hide();
+            
+            // 清空表单
+            document.getElementById('field-create-form').reset();
+            
+            // 如果是第一个字段，移除提示文本
+            const noFieldsMessage = document.querySelector('.text-center.py-5');
+            if (noFieldsMessage) {
+                noFieldsMessage.remove();
+            }
+        });
+        
+        // 保存表单
+        document.getElementById('save-form').addEventListener('click', function() {
+            // 收集所有字段
+            const fields = [];
+            document.querySelectorAll('.form-field-item').forEach(function(fieldEl, index) {
+                const fieldType = fieldEl.getAttribute('data-field-type');
+                const label = fieldEl.querySelector('.field-label').value;
+                const name = fieldEl.querySelector('.field-name').value;
+                const placeholderText = fieldEl.querySelector('.field-placeholder').value;
+                const helpText = fieldEl.querySelector('.field-help-text').value;
+                const required = fieldEl.querySelector('.field-required').checked;
+                
+                let options = null;
+                if (['select', 'radio', 'checkbox'].includes(fieldType)) {
+                    options = fieldEl.querySelector('.field-options').value;
+                }
+                
+                fields.push({
+                    field_type: fieldType,
+                    label: label,
+                    name: name,
+                    placeholder: placeholderText,
+                    help_text: helpText,
+                    options: options,
+                    required: required,
+                    order: index + 1
+                });
+            });
+            
+            // 发送到服务器
+            fetch('{{ url_for("admin.form_visual_design", form_id=form.id) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() if csrf_token else "" }}'
+                },
+                body: JSON.stringify({ fields: fields })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 显示成功提示
+                    const toast = new bootstrap.Toast(document.getElementById('save-toast'));
+                    toast.show();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('保存失败，请重试');
+            });
+        });
+    });
+</script>
+{% endblock %} 

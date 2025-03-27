@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}首页 - 车辆管理系统{% endblock %}
+
+{% block content %}
+<div class="row mt-5">
+    <div class="col-md-6 offset-md-3 text-center">
+        <h1 class="display-4">欢迎使用车辆管理系统</h1>
+        <p class="lead mt-3">这是一个功能强大的车辆管理平台，支持用户管理、车辆管理、流程设计等功能。</p>
+        <div class="mt-5">
+            <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg me-3">登录</a>
+            <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary btn-lg">注册</a>
+        </div>
+        <div class="mt-5">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                            <h5 class="card-title">用户管理</h5>
+                            <p class="card-text">多角色用户管理系统，包括部门员工、管理员、审核员等角色。</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-car fa-3x text-primary mb-3"></i>
+                            <h5 class="card-title">车辆管理</h5>
+                            <p class="card-text">全面的车辆信息管理，包括车辆状态、使用情况等。</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-tasks fa-3x text-primary mb-3"></i>
+                            <h5 class="card-title">流程管理</h5>
+                            <p class="card-text">灵活的流程设计和管理功能，支持自定义表单和流程步骤。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

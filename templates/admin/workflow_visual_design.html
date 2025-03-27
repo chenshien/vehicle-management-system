@@ -1,0 +1,687 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}工作流可视化设计 - {{ workflow.name }}{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='vendor/jsplumb/css/jsplumbtoolkit-defaults.min.css') }}">
+<style>
+    .flow-container {
+        position: relative;
+        min-height: 500px;
+        border: 1px solid #ddd;
+        background-color: #f9f9f9;
+        padding: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .step-item {
+        position: absolute;
+        width: 200px;
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        cursor: move;
+        z-index: 10;
+    }
+    
+    .step-item.start {
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+    }
+    
+    .step-item.end {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+    }
+    
+    .step-header {
+        font-weight: bold;
+        margin-bottom: 5px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 5px;
+    }
+    
+    .step-desc {
+        color: #666;
+        font-size: 0.9em;
+        margin-bottom: 5px;
+    }
+    
+    .step-role, .step-form {
+        font-size: 0.85em;
+        color: #555;
+        margin-bottom: 3px;
+    }
+    
+    .step-actions {
+        text-align: right;
+        margin-top: 5px;
+    }
+    
+    .palette-container {
+        background-color: #f0f0f0;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 10px;
+    }
+    
+    .palette-item {
+        display: inline-block;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        padding: 5px 10px;
+        margin: 5px;
+        cursor: pointer;
+    }
+    
+    .step-edit-panel {
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 15px;
+        margin-top: 20px;
+    }
+    
+    /* jsPlumb相关样式 */
+    .endpoint {
+        z-index: 20;
+    }
+    
+    /* 源端点样式 */
+    .endpoint.source-endpoint {
+        fill: #5c96bc;
+        stroke: #5c96bc;
+        stroke-width: 1;
+    }
+    
+    /* 目标端点样式 */
+    .endpoint.target-endpoint {
+        fill: #a5b55b;
+        stroke: #a5b55b;
+        stroke-width: 1;
+    }
+    
+    /* 端点悬停样式 */
+    .endpoint:hover {
+        transform: scale(1.2);
+        transition: transform 0.2s;
+    }
+    
+    /* 连接线样式 */
+    .jtk-connector {
+        z-index: 5;
+    }
+    
+    /* 拖拽线样式 */
+    .jtk-dragging {
+        z-index: 30;
+    }
+    
+    /* 表单组间隔 */
+    .form-group {
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">工作流可视化设计</h2>
+        <div>
+            <button id="save-workflow" class="btn btn-success me-2">
+                <i class="fas fa-save"></i> 保存工作流
+            </button>
+            <a href="{{ url_for('admin.edit_workflow', workflow_id=workflow.id) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> 返回工作流
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">{{ workflow.name }}</h5>
+        </div>
+        <div class="card-body">
+            <p>{{ workflow.description or '无描述' }}</p>
+            <p><strong>状态：</strong> {{ workflow.status }} | <strong>版本：</strong> v{{ workflow.version }}</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-9">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">设计画布</h5>
+                </div>
+                <div class="card-body">
+                    <div class="palette">
+                        <div class="palette-item" data-step-type="normal">普通步骤</div>
+                        <div class="palette-item" data-step-type="start">开始步骤</div>
+                        <div class="palette-item" data-step-type="end">结束步骤</div>
+                    </div>
+                    
+                    <div class="flow-container" id="flow-canvas">
+                        {% for step in steps %}
+                        <div id="step-{{ step.id }}" class="step-item" data-step-id="{{ step.id }}" 
+                             data-order="{{ step.order }}" style="top: {{ 50 + step.order * 100 }}px; left: 50px;">
+                            <div class="step-header">{{ step.name }}</div>
+                            <div class="step-desc">{{ step.description or '' }}</div>
+                            {% if step.role %}
+                            <div class="step-role">处理角色: {{ step.role.name }}</div>
+                            {% endif %}
+                            {% if step.form %}
+                            <div class="step-form">关联表单: {{ step.form.name }}</div>
+                            {% endif %}
+                            <div class="step-actions">
+                                <button class="btn btn-sm btn-primary edit-step" data-step-id="{{ step.id }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger delete-step" data-step-id="{{ step.id }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card" id="step-edit-panel" style="display: none;">
+                <div class="card-header">
+                    <h5 class="mb-0" id="edit-panel-title">编辑步骤</h5>
+                </div>
+                <div class="card-body">
+                    <form id="step-edit-form">
+                        <input type="hidden" id="step-id">
+                        <div class="form-group">
+                            <label for="step-name">步骤名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="step-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="step-description">描述</label>
+                            <textarea class="form-control" id="step-description" rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="step-role">处理角色</label>
+                            <select class="form-select" id="step-role">
+                                <option value="">-- 选择角色 --</option>
+                                {% for role in roles %}
+                                <option value="{{ role.id }}">{{ role.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="step-form">关联表单</label>
+                            <select class="form-select" id="step-form">
+                                <option value="">-- 选择表单 --</option>
+                                {% for form in forms %}
+                                <option value="{{ form.id }}">{{ form.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="text-end mt-3">
+                            <button type="button" class="btn btn-secondary" id="cancel-edit">取消</button>
+                            <button type="submit" class="btn btn-primary">保存</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">操作说明</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-mouse-pointer me-2"></i> 拖拽步骤调整位置</li>
+                        <li><i class="fas fa-project-diagram me-2"></i> 连接点之间拖拽创建连接</li>
+                        <li><i class="fas fa-edit me-2"></i> 点击编辑按钮修改步骤</li>
+                        <li><i class="fas fa-trash me-2"></i> 点击删除按钮移除步骤</li>
+                        <li><i class="fas fa-save me-2"></i> 点击保存按钮保存工作流</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 步骤创建模态框 -->
+<div class="modal fade" id="step-create-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">创建新步骤</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="step-create-form">
+                    <input type="hidden" id="new-step-type" value="normal">
+                    <div class="mb-3">
+                        <label for="new-step-name" class="form-label">步骤名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="new-step-name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new-step-description" class="form-label">描述</label>
+                        <textarea class="form-control" id="new-step-description" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new-step-role" class="form-label">处理角色</label>
+                        <select class="form-select" id="new-step-role">
+                            <option value="">-- 选择角色 --</option>
+                            {% for role in roles %}
+                            <option value="{{ role.id }}">{{ role.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new-step-form" class="form-label">关联表单</label>
+                        <select class="form-select" id="new-step-form">
+                            <option value="">-- 选择表单 --</option>
+                            {% for form in forms %}
+                            <option value="{{ form.id }}">{{ form.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="create-step-btn">创建</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 保存成功提示 -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 5">
+    <div id="save-toast" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header bg-success text-white">
+            <strong class="me-auto">成功</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            工作流设计已成功保存！
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='vendor/jsplumb/js/jquery.jsPlumb.min.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 初始化jsPlumb
+        const jsPlumbInstance = jsPlumb.getInstance({
+            Endpoint: ["Dot", { radius: 6 }], // 增大端点尺寸以便更容易点击
+            Connector: ["Bezier", { curviness: 50 }],
+            PaintStyle: { stroke: "#456", strokeWidth: 2 },
+            ConnectionOverlays: [
+                ["Arrow", { location: 1, width: 10, length: 10, foldback: 0.7 }]
+            ],
+            Container: "flow-canvas",
+            DragOptions: { cursor: 'move', zIndex: 2000 } // 添加拖拽选项
+        });
+
+        // 添加调试信息
+        console.log('jsPlumb初始化完成');
+        
+        // DOM 完全加载后再初始化元素拖拽
+        window.onload = function() {
+            // 等待半秒确保DOM和jsPlumb都就绪
+            setTimeout(initDraggableElements, 500);
+        };
+        
+        function initDraggableElements() {
+            // 使步骤元素可拖拽
+            const stepElements = document.querySelectorAll(".step-item");
+            console.log('找到步骤元素:', stepElements.length);
+            
+            if (stepElements.length > 0) {
+                stepElements.forEach(function(el) {
+                    // 确保每个步骤都有position:absolute样式
+                    el.style.position = 'absolute';
+                    
+                    try {
+                        // 使用jsPlumb使元素可拖拽
+                        jsPlumbInstance.draggable(el, {
+                            grid: [10, 10],
+                            containment: "parent",
+                            stop: function(event) {
+                                console.log('拖拽结束:', el.id, 'position:', el.style.top, el.style.left);
+                            }
+                        });
+    
+                        // 添加源端点(可以从这里连出)
+                        jsPlumbInstance.addEndpoint(el, {
+                            anchor: "RightMiddle",
+                            isSource: true,
+                            maxConnections: -1,
+                            cssClass: "endpoint source-endpoint",
+                            connectorStyle: { stroke: "#5c96bc", strokeWidth: 2 },
+                            connectorOverlays: [
+                                ["Arrow", { width: 10, length: 10, location: 1 }]
+                            ]
+                        });
+                        
+                        // 添加目标端点(可以连到这里)
+                        jsPlumbInstance.addEndpoint(el, {
+                            anchor: "LeftMiddle",
+                            isTarget: true,
+                            maxConnections: -1,
+                            cssClass: "endpoint target-endpoint",
+                            dropOptions: { hoverClass: "hover", activeClass: "active" }
+                        });
+                        
+                        console.log('成功设置步骤:', el.id);
+                    } catch (error) {
+                        console.error('设置步骤出错:', el.id, error);
+                    }
+                });
+                
+                console.log('已设置', stepElements.length, '个步骤元素为可拖拽');
+            } else {
+                console.log('没有找到步骤元素');
+            }
+        }
+        
+        // 从工具箱拖拽新步骤到画布
+        document.querySelectorAll('.palette-item').forEach(function(item) {
+            item.addEventListener('click', function() {
+                const stepType = this.getAttribute('data-step-type');
+                document.getElementById('new-step-type').value = stepType;
+                
+                // 显示创建步骤模态框
+                const modal = new bootstrap.Modal(document.getElementById('step-create-modal'));
+                modal.show();
+            });
+        });
+        
+        // 创建新步骤
+        document.getElementById('create-step-btn').addEventListener('click', function() {
+            const name = document.getElementById('new-step-name').value;
+            if (!name) {
+                alert('步骤名称不能为空');
+                return;
+            }
+            
+            const description = document.getElementById('new-step-description').value;
+            const roleId = document.getElementById('new-step-role').value;
+            const formId = document.getElementById('new-step-form').value;
+            const stepType = document.getElementById('new-step-type').value;
+            
+            // 计算新步骤ID和位置
+            const stepId = 'new-' + Date.now();
+            const stepCount = document.querySelectorAll('.step-item').length;
+            const top = 50 + (stepCount * 50);
+            const left = 100;
+            
+            // 创建新步骤元素
+            const stepEl = document.createElement('div');
+            stepEl.id = 'step-' + stepId;
+            stepEl.className = 'step-item' + (stepType !== 'normal' ? ' ' + stepType : '');
+            stepEl.setAttribute('data-step-id', stepId);
+            stepEl.setAttribute('data-order', stepCount + 1);
+            stepEl.style.top = top + 'px';
+            stepEl.style.left = left + 'px';
+            stepEl.style.position = 'absolute'; // 确保position为absolute
+            
+            // 设置步骤内容
+            stepEl.innerHTML = `
+                <div class="step-header">${name}</div>
+                <div class="step-desc">${description || ''}</div>
+                ${roleId ? `<div class="step-role">处理角色: ${document.querySelector(`#new-step-role option[value="${roleId}"]`).textContent}</div>` : ''}
+                ${formId ? `<div class="step-form">关联表单: ${document.querySelector(`#new-step-form option[value="${formId}"]`).textContent}</div>` : ''}
+                <div class="step-actions">
+                    <button class="btn btn-sm btn-primary edit-step" data-step-id="${stepId}">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger delete-step" data-step-id="${stepId}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            
+            // 添加到画布
+            document.getElementById('flow-canvas').appendChild(stepEl);
+            
+            try {
+                // 使新步骤可拖拽
+                jsPlumbInstance.draggable(stepEl, {
+                    grid: [10, 10],
+                    containment: "parent"
+                });
+                
+                // 添加源端点(可以从这里连出)
+                jsPlumbInstance.addEndpoint(stepEl, {
+                    anchor: "RightMiddle",
+                    isSource: true,
+                    maxConnections: -1,
+                    cssClass: "endpoint source-endpoint",
+                    connectorStyle: { stroke: "#5c96bc", strokeWidth: 2 },
+                    connectorOverlays: [
+                        ["Arrow", { width: 10, length: 10, location: 1 }]
+                    ]
+                });
+                
+                // 添加目标端点(可以连到这里)
+                jsPlumbInstance.addEndpoint(stepEl, {
+                    anchor: "LeftMiddle",
+                    isTarget: true,
+                    maxConnections: -1,
+                    cssClass: "endpoint target-endpoint",
+                    dropOptions: { hoverClass: "hover", activeClass: "active" }
+                });
+                
+                console.log('新步骤设置成功:', stepEl.id);
+            } catch (error) {
+                console.error('设置新步骤出错:', error);
+            }
+            
+            // 重新绑定事件监听器
+            bindEditDeleteEvents();
+            
+            // 关闭模态框
+            bootstrap.Modal.getInstance(document.getElementById('step-create-modal')).hide();
+            
+            // 清空表单
+            document.getElementById('step-create-form').reset();
+        });
+        
+        // 编辑和删除步骤的事件绑定
+        function bindEditDeleteEvents() {
+            // 编辑步骤
+            document.querySelectorAll('.edit-step').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const stepId = this.getAttribute('data-step-id');
+                    const stepEl = document.querySelector(`.step-item[data-step-id="${stepId}"]`);
+                    
+                    document.getElementById('step-id').value = stepId;
+                    document.getElementById('step-name').value = stepEl.querySelector('.step-header').textContent;
+                    document.getElementById('step-description').value = stepEl.querySelector('.step-desc').textContent;
+                    
+                    const roleEl = stepEl.querySelector('.step-role');
+                    if (roleEl) {
+                        const roleName = roleEl.textContent.replace('处理角色: ', '');
+                        const roleOption = Array.from(document.querySelectorAll('#step-role option')).find(opt => opt.textContent === roleName);
+                        if (roleOption) {
+                            document.getElementById('step-role').value = roleOption.value;
+                        }
+                    }
+                    
+                    const formEl = stepEl.querySelector('.step-form');
+                    if (formEl) {
+                        const formName = formEl.textContent.replace('关联表单: ', '');
+                        const formOption = Array.from(document.querySelectorAll('#step-form option')).find(opt => opt.textContent === formName);
+                        if (formOption) {
+                            document.getElementById('step-form').value = formOption.value;
+                        }
+                    }
+                    
+                    document.getElementById('step-edit-panel').style.display = 'block';
+                });
+            });
+            
+            // 删除步骤
+            document.querySelectorAll('.delete-step').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    if (confirm('确定要删除此步骤吗？')) {
+                        const stepId = this.getAttribute('data-step-id');
+                        const stepEl = document.querySelector(`.step-item[data-step-id="${stepId}"]`);
+                        
+                        try {
+                            // 移除连接
+                            jsPlumbInstance.remove(stepEl.id);
+                        } catch (error) {
+                            console.error('移除步骤连接出错:', error);
+                        }
+                        
+                        // 移除元素
+                        stepEl.remove();
+                    }
+                });
+            });
+        }
+        
+        // 初始绑定事件
+        bindEditDeleteEvents();
+        
+        // 处理步骤编辑表单提交
+        document.getElementById('step-edit-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const stepId = document.getElementById('step-id').value;
+            const name = document.getElementById('step-name').value;
+            const description = document.getElementById('step-description').value;
+            const roleId = document.getElementById('step-role').value;
+            const formId = document.getElementById('step-form').value;
+            
+            const stepEl = document.querySelector(`.step-item[data-step-id="${stepId}"]`);
+            
+            // 更新步骤内容
+            stepEl.querySelector('.step-header').textContent = name;
+            stepEl.querySelector('.step-desc').textContent = description || '';
+            
+            // 更新角色
+            let roleEl = stepEl.querySelector('.step-role');
+            if (roleId) {
+                const roleName = document.querySelector(`#step-role option[value="${roleId}"]`).textContent;
+                if (roleEl) {
+                    roleEl.textContent = '处理角色: ' + roleName;
+                } else {
+                    roleEl = document.createElement('div');
+                    roleEl.className = 'step-role';
+                    roleEl.textContent = '处理角色: ' + roleName;
+                    stepEl.insertBefore(roleEl, stepEl.querySelector('.step-actions'));
+                }
+            } else if (roleEl) {
+                roleEl.remove();
+            }
+            
+            // 更新表单
+            let formEl = stepEl.querySelector('.step-form');
+            if (formId) {
+                const formName = document.querySelector(`#step-form option[value="${formId}"]`).textContent;
+                if (formEl) {
+                    formEl.textContent = '关联表单: ' + formName;
+                } else {
+                    formEl = document.createElement('div');
+                    formEl.className = 'step-form';
+                    formEl.textContent = '关联表单: ' + formName;
+                    stepEl.insertBefore(formEl, stepEl.querySelector('.step-actions'));
+                }
+            } else if (formEl) {
+                formEl.remove();
+            }
+            
+            // 隐藏编辑面板
+            document.getElementById('step-edit-panel').style.display = 'none';
+            
+            // 重置表单
+            document.getElementById('step-edit-form').reset();
+        });
+        
+        // 取消编辑
+        document.getElementById('cancel-edit').addEventListener('click', function() {
+            document.getElementById('step-edit-panel').style.display = 'none';
+            document.getElementById('step-edit-form').reset();
+        });
+        
+        // 保存工作流
+        document.getElementById('save-workflow').addEventListener('click', function() {
+            // 收集步骤数据
+            const steps = [];
+            document.querySelectorAll('.step-item').forEach(function(stepEl, index) {
+                const stepId = stepEl.getAttribute('data-step-id');
+                const name = stepEl.querySelector('.step-header').textContent;
+                const description = stepEl.querySelector('.step-desc').textContent;
+                
+                let roleId = null;
+                const roleEl = stepEl.querySelector('.step-role');
+                if (roleEl) {
+                    const roleName = roleEl.textContent.replace('处理角色: ', '');
+                    const roleOption = Array.from(document.querySelectorAll('#step-role option')).find(opt => opt.textContent === roleName);
+                    if (roleOption) {
+                        roleId = roleOption.value;
+                    }
+                }
+                
+                let formId = null;
+                const formEl = stepEl.querySelector('.step-form');
+                if (formEl) {
+                    const formName = formEl.textContent.replace('关联表单: ', '');
+                    const formOption = Array.from(document.querySelectorAll('#step-form option')).find(opt => opt.textContent === formName);
+                    if (formOption) {
+                        formId = formOption.value;
+                    }
+                }
+                
+                // 获取位置信息
+                const position = {
+                    top: parseInt(stepEl.style.top) || 0,
+                    left: parseInt(stepEl.style.left) || 0
+                };
+                
+                steps.push({
+                    id: stepId,
+                    name: name,
+                    description: description,
+                    role_id: roleId,
+                    form_id: formId,
+                    order: index + 1,
+                    position: position
+                });
+            });
+            
+            // 发送到服务器
+            fetch('{{ url_for("admin.workflow_visual_design", workflow_id=workflow.id) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() if csrf_token else "" }}'
+                },
+                body: JSON.stringify({ steps: steps })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 显示成功提示
+                    const toast = new bootstrap.Toast(document.getElementById('save-toast'));
+                    toast.show();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('保存失败，请重试');
+            });
+        });
+    });
+</script>
+{% endblock %} 

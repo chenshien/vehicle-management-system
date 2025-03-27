@@ -1,0 +1,176 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}工作流步骤管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">工作流步骤管理</h2>
+        <div>
+            <a href="{{ url_for('admin.workflow_visual_design', workflow_id=workflow.id) }}" class="btn btn-info me-2">
+                <i class="fas fa-project-diagram"></i> 可视化设计
+            </a>
+            <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addStepModal">
+                <i class="fas fa-plus"></i> 添加步骤
+            </button>
+            <a href="{{ url_for('admin.edit_workflow', workflow_id=workflow.id) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> 返回工作流
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">工作流：{{ workflow.name }}</h5>
+        </div>
+        <div class="card-body">
+            <p>{{ workflow.description or '无描述' }}</p>
+            <p><strong>状态：</strong> {{ workflow.status }} | <strong>版本：</strong> v{{ workflow.version }}</p>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">步骤列表</h5>
+        </div>
+        <div class="card-body">
+            {% if steps %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>序号</th>
+                            <th>名称</th>
+                            <th>描述</th>
+                            <th>角色</th>
+                            <th>关联表单</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for step in steps %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ step.name }}</td>
+                            <td>{{ step.description or '-' }}</td>
+                            <td>{{ step.role.name if step.role else '-' }}</td>
+                            <td>{{ step.form.name if step.form else '-' }}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editStepModal{{ step.id }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form method="POST" action="{{ url_for('admin.delete_workflow_step', step_id=step.id) }}" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('确定删除此步骤吗？')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                                
+                                <!-- 编辑步骤模态框 -->
+                                <div class="modal fade" id="editStepModal{{ step.id }}" tabindex="-1" aria-labelledby="editStepModalLabel{{ step.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="editStepModalLabel{{ step.id }}">编辑步骤</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <form method="POST" action="{{ url_for('admin.edit_workflow_step', step_id=step.id) }}">
+                                                <div class="modal-body">
+                                                    <div class="mb-3">
+                                                        <label for="name{{ step.id }}" class="form-label">步骤名称 <span class="text-danger">*</span></label>
+                                                        <input type="text" class="form-control" id="name{{ step.id }}" name="name" value="{{ step.name }}" required>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="description{{ step.id }}" class="form-label">描述</label>
+                                                        <textarea class="form-control" id="description{{ step.id }}" name="description" rows="2">{{ step.description or '' }}</textarea>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="role_id{{ step.id }}" class="form-label">处理角色</label>
+                                                        <select class="form-select" id="role_id{{ step.id }}" name="role_id">
+                                                            <option value="">-- 选择角色 --</option>
+                                                            {% for role in roles %}
+                                                            <option value="{{ role.id }}" {% if step.role and step.role.id == role.id %}selected{% endif %}>{{ role.name }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="form_id{{ step.id }}" class="form-label">关联表单</label>
+                                                        <select class="form-select" id="form_id{{ step.id }}" name="form_id">
+                                                            <option value="">-- 选择表单 --</option>
+                                                            {% for form in forms %}
+                                                            <option value="{{ form.id }}" {% if step.form and step.form.id == form.id %}selected{% endif %}>{{ form.name }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                                    <button type="submit" class="btn btn-primary">保存更改</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> 当前工作流还没有步骤，请添加步骤。
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 添加步骤模态框 -->
+<div class="modal fade" id="addStepModal" tabindex="-1" aria-labelledby="addStepModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addStepModalLabel">添加步骤</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.workflow_steps', workflow_id=workflow.id) }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">步骤名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">描述</label>
+                        <textarea class="form-control" id="description" name="description" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="role_id" class="form-label">处理角色</label>
+                        <select class="form-select" id="role_id" name="role_id">
+                            <option value="">-- 选择角色 --</option>
+                            {% for role in roles %}
+                            <option value="{{ role.id }}">{{ role.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="form_id" class="form-label">关联表单</label>
+                        <select class="form-select" id="form_id" name="form_id">
+                            <option value="">-- 选择表单 --</option>
+                            {% for form in forms %}
+                            <option value="{{ form.id }}">{{ form.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">如果需要的表单不存在，请先去<a href="{{ url_for('admin.workflow_forms', workflow_id=workflow.id) }}" target="_blank">表单管理</a>创建</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

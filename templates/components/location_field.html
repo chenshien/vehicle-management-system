@@ -1,0 +1,65 @@
+{% macro render_location_field(field_id, field_name, field_label, required=False, value=None, disabled=False, step_id=None) %}
+<div class="mb-4" data-step-id="{{ step_id }}">
+    <label for="{{ field_id }}" class="form-label">
+        {{ field_label }}
+        {% if required %}<span class="text-danger">*</span>{% endif %}
+    </label>
+    
+    <!-- 位置信息容器 -->
+    <div id="{{ field_id }}_container" class="location-field-container"></div>
+    
+    <!-- 隐藏的位置数据输入框 -->
+    <input type="hidden" 
+           id="{{ field_id }}" 
+           name="{{ field_name }}" 
+           value="{{ value|default('', true)|tojson }}" 
+           {% if required %}required{% endif %}
+           {% if disabled %}disabled{% endif %}>
+</div>
+
+<!-- 初始化位置选择器 -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 安全检查，确保脚本只执行一次
+    if (window['{{ field_id }}_initialized']) return;
+    window['{{ field_id }}_initialized'] = true;
+    
+    // 检测是否在微信浏览器中
+    const isWechatBrowser = /MicroMessenger/i.test(navigator.userAgent);
+    
+    // 创建位置选择器实例
+    const locationPicker = new LocationPicker('{{ field_id }}_container', {
+        onSelect: function(location) {
+            // 将位置数据保存到隐藏的输入框中
+            document.getElementById('{{ field_id }}').value = JSON.stringify(location);
+        },
+        useWechat: isWechatBrowser,  // 如果在微信中，启用微信位置
+        apiKey: '您的高德地图API密钥'  // 替换为实际的API密钥
+    });
+    
+    // 如果有初始值，设置初始位置
+    try {
+        const initialValue = document.getElementById('{{ field_id }}').value;
+        if (initialValue) {
+            const location = JSON.parse(initialValue);
+            locationPicker.setLocation(location);
+        }
+    } catch (error) {
+        console.error('解析位置数据失败:', error);
+    }
+    
+    // 添加获取当前位置按钮
+    const getCurrentLocationBtn = document.createElement('button');
+    getCurrentLocationBtn.type = 'button';
+    getCurrentLocationBtn.className = 'btn btn-secondary ms-2';
+    getCurrentLocationBtn.textContent = '获取当前位置';
+    getCurrentLocationBtn.addEventListener('click', function() {
+        locationPicker.getCurrentLocation();
+    });
+    
+    // 将按钮添加到地图容器下方
+    const container = document.getElementById('{{ field_id }}_container');
+    container.appendChild(getCurrentLocationBtn);
+});
+</script>
+{% endmacro %} 

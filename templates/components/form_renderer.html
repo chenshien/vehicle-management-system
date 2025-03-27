@@ -1,0 +1,222 @@
+{% from 'components/location_field.html' import render_location_field %}
+
+{% macro render_form(form, form_data={}, disabled=False, current_step_id=None) %}
+<div class="form-container">
+    {% for field in form.fields %}
+        {% set field_value = form_data.get(field.name, field.default_value) %}
+        
+        {% if current_step_id is none or field.is_visible_in_step(current_step_id) %}
+            {% set field_disabled = disabled or (current_step_id is not none and not field.is_editable_in_step(current_step_id)) %}
+            
+            {% if field.field_type == 'text' %}
+                {{ render_text_field(field, field_value, field_disabled, current_step_id) }}
+            
+            {% elif field.field_type == 'textarea' %}
+                {{ render_textarea_field(field, field_value, field_disabled, current_step_id) }}
+            
+            {% elif field.field_type == 'number' %}
+                {{ render_number_field(field, field_value, field_disabled, current_step_id) }}
+            
+            {% elif field.field_type == 'date' %}
+                {{ render_date_field(field, field_value, field_disabled, current_step_id) }}
+            
+            {% elif field.field_type == 'datetime' %}
+                {{ render_datetime_field(field, field_value, field_disabled, current_step_id) }}
+            
+            {% elif field.field_type == 'select' %}
+                {{ render_select_field(field, field_value, field_disabled, current_step_id) }}
+            
+            {% elif field.field_type == 'radio' %}
+                {{ render_radio_field(field, field_value, field_disabled, current_step_id) }}
+            
+            {% elif field.field_type == 'checkbox' %}
+                {{ render_checkbox_field(field, field_value, field_disabled, current_step_id) }}
+            
+            {% elif field.field_type == 'file' %}
+                {{ render_file_field(field, field_value, field_disabled, current_step_id) }}
+            
+            {% elif field.field_type == 'location' %}
+                {{ render_location_field('field_' + field.id|string, field.name, field.label, field.is_required, field_value, field_disabled, current_step_id) }}
+            
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro render_text_field(field, value, disabled, step_id=None) %}
+<div class="mb-3" data-step-id="{{ step_id }}">
+    <label for="field_{{ field.id }}" class="form-label">
+        {{ field.label }}
+        {% if field.is_required %}<span class="text-danger">*</span>{% endif %}
+    </label>
+    <input type="text" 
+           class="form-control" 
+           id="field_{{ field.id }}" 
+           name="{{ field.name }}" 
+           placeholder="{{ field.placeholder }}"
+           value="{{ value or '' }}"
+           {% if field.is_required %}required{% endif %}
+           {% if disabled %}disabled{% endif %}>
+</div>
+{% endmacro %}
+
+{% macro render_textarea_field(field, value, disabled, step_id=None) %}
+<div class="mb-3" data-step-id="{{ step_id }}">
+    <label for="field_{{ field.id }}" class="form-label">
+        {{ field.label }}
+        {% if field.is_required %}<span class="text-danger">*</span>{% endif %}
+    </label>
+    <textarea class="form-control" 
+              id="field_{{ field.id }}" 
+              name="{{ field.name }}" 
+              placeholder="{{ field.placeholder }}"
+              rows="4"
+              {% if field.is_required %}required{% endif %}
+              {% if disabled %}disabled{% endif %}>{{ value or '' }}</textarea>
+</div>
+{% endmacro %}
+
+{% macro render_number_field(field, value, disabled, step_id=None) %}
+<div class="mb-3" data-step-id="{{ step_id }}">
+    <label for="field_{{ field.id }}" class="form-label">
+        {{ field.label }}
+        {% if field.is_required %}<span class="text-danger">*</span>{% endif %}
+    </label>
+    <input type="number" 
+           class="form-control" 
+           id="field_{{ field.id }}" 
+           name="{{ field.name }}" 
+           placeholder="{{ field.placeholder }}"
+           value="{{ value or '' }}"
+           {% if field.is_required %}required{% endif %}
+           {% if disabled %}disabled{% endif %}>
+</div>
+{% endmacro %}
+
+{% macro render_date_field(field, value, disabled, step_id=None) %}
+<div class="mb-3" data-step-id="{{ step_id }}">
+    <label for="field_{{ field.id }}" class="form-label">
+        {{ field.label }}
+        {% if field.is_required %}<span class="text-danger">*</span>{% endif %}
+    </label>
+    <input type="date" 
+           class="form-control datepicker" 
+           id="field_{{ field.id }}" 
+           name="{{ field.name }}" 
+           placeholder="{{ field.placeholder }}"
+           value="{{ value or '' }}"
+           {% if field.is_required %}required{% endif %}
+           {% if disabled %}disabled{% endif %}>
+</div>
+{% endmacro %}
+
+{% macro render_datetime_field(field, value, disabled, step_id=None) %}
+<div class="mb-3" data-step-id="{{ step_id }}">
+    <label for="field_{{ field.id }}" class="form-label">
+        {{ field.label }}
+        {% if field.is_required %}<span class="text-danger">*</span>{% endif %}
+    </label>
+    <input type="datetime-local" 
+           class="form-control datetimepicker" 
+           id="field_{{ field.id }}" 
+           name="{{ field.name }}" 
+           placeholder="{{ field.placeholder }}"
+           value="{{ value or '' }}"
+           {% if field.is_required %}required{% endif %}
+           {% if disabled %}disabled{% endif %}>
+</div>
+{% endmacro %}
+
+{% macro render_select_field(field, value, disabled, step_id=None) %}
+<div class="mb-3" data-step-id="{{ step_id }}">
+    <label for="field_{{ field.id }}" class="form-label">
+        {{ field.label }}
+        {% if field.is_required %}<span class="text-danger">*</span>{% endif %}
+    </label>
+    <select class="form-select" 
+            id="field_{{ field.id }}" 
+            name="{{ field.name }}"
+            {% if field.is_required %}required{% endif %}
+            {% if disabled %}disabled{% endif %}>
+        <option value="">-- 请选择 --</option>
+        {% for option in field.get_options() %}
+            <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ option }}</option>
+        {% endfor %}
+    </select>
+</div>
+{% endmacro %}
+
+{% macro render_radio_field(field, value, disabled, step_id=None) %}
+<div class="mb-3" data-step-id="{{ step_id }}">
+    <label class="form-label">
+        {{ field.label }}
+        {% if field.is_required %}<span class="text-danger">*</span>{% endif %}
+    </label>
+    <div>
+        {% for option in field.get_options() %}
+            <div class="form-check">
+                <input class="form-check-input" 
+                       type="radio" 
+                       name="{{ field.name }}" 
+                       id="field_{{ field.id }}_{{ loop.index }}" 
+                       value="{{ option }}"
+                       {% if value == option %}checked{% endif %}
+                       {% if field.is_required %}required{% endif %}
+                       {% if disabled %}disabled{% endif %}>
+                <label class="form-check-label" for="field_{{ field.id }}_{{ loop.index }}">
+                    {{ option }}
+                </label>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro render_checkbox_field(field, value, disabled, step_id=None) %}
+<div class="mb-3" data-step-id="{{ step_id }}">
+    <label class="form-label">
+        {{ field.label }}
+        {% if field.is_required %}<span class="text-danger">*</span>{% endif %}
+    </label>
+    <div>
+        {% for option in field.get_options() %}
+            <div class="form-check">
+                <input class="form-check-input" 
+                       type="checkbox" 
+                       name="{{ field.name }}[]" 
+                       id="field_{{ field.id }}_{{ loop.index }}" 
+                       value="{{ option }}"
+                       {% if value and option in value %}checked{% endif %}
+                       {% if disabled %}disabled{% endif %}>
+                <label class="form-check-label" for="field_{{ field.id }}_{{ loop.index }}">
+                    {{ option }}
+                </label>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro render_file_field(field, value, disabled, step_id=None) %}
+<div class="mb-3" data-step-id="{{ step_id }}">
+    <label for="field_{{ field.id }}" class="form-label">
+        {{ field.label }}
+        {% if field.is_required %}<span class="text-danger">*</span>{% endif %}
+    </label>
+    <input type="file" 
+           class="form-control" 
+           id="field_{{ field.id }}" 
+           name="{{ field.name }}"
+           {% if field.is_required and not value %}required{% endif %}
+           {% if disabled %}disabled{% endif %}>
+    {% if value %}
+        <div class="mt-2">
+            <a href="{{ url_for('static', filename='uploads/' + value) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-file"></i> 查看已上传文件
+            </a>
+            <input type="hidden" name="{{ field.name }}_existing" value="{{ value }}">
+        </div>
+    {% endif %}
+</div>
+{% endmacro %} 

@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block navbar %}
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('admin.dashboard') }}">车辆管理系统管理后台</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNavbar">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="adminNavbar">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}" href="{{ url_for('admin.dashboard') }}">
+                        <i class="fas fa-tachometer-alt"></i> 仪表板
+                    </a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-users"></i> 用户管理
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('admin.users') }}">用户列表</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin.roles') }}">角色管理</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin.permissions') }}">权限管理</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="vehicleDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-car"></i> 车辆管理
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('admin.vehicles') }}">车辆列表</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin.vehicle_categories') }}">车辆类型</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin.maintenance_records') }}">维护记录</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="workflowDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-project-diagram"></i> 工作流管理
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('workflow.workflows') }}">工作流列表</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('workflow.create_workflow') }}">创建工作流</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('admin.applications') }}">所有申请</a></li>
+                    </ul>
+                </li>
+            </ul>
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('user.dashboard') }}">
+                        <i class="fas fa-home"></i> 返回前台
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('auth.logout') }}">
+                        <i class="fas fa-sign-out-alt"></i> 退出登录
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<!-- 此处会被子模板覆盖 -->
+{% endblock %} 

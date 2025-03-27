@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% from 'components/form_renderer.html' import render_form %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h4>查看申请: {{ application.title }}</h4>
+                <div class="badge bg-{{ application.status.name|status_badge }}">{{ application.status.name }}</div>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <h5>申请信息</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>申请人:</strong> {{ application.user.name }}</p>
+                            <p><strong>申请时间:</strong> {{ application.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                            {% if application.submitted_at %}
+                            <p><strong>提交时间:</strong> {{ application.submitted_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>工作流:</strong> {{ application.workflow.name }}</p>
+                            {% if application.current_step %}
+                            <p><strong>当前步骤:</strong> {{ application.current_step.name }}</p>
+                            {% endif %}
+                            {% if application.completed_at %}
+                            <p><strong>完成时间:</strong> {{ application.completed_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 表单数据 -->
+                {% for step in application.workflow.steps %}
+                    {% if step.form and step.form.id in forms_data %}
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5>{{ step.name }} - {{ step.form.name }}</h5>
+                            </div>
+                            <div class="card-body">
+                                {{ render_form(step.form, forms_data[step.form.id], True, application.current_step.id if application.current_step else None) }}
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+                
+                <!-- 审批历史 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>审批历史</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="timeline">
+                            {% for log in logs %}
+                                <div class="timeline-item">
+                                    <div class="timeline-marker"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="mb-0">{{ log.user.name }} - {{ log.action }}</h6>
+                                        <p class="text-muted mb-0">{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                                        <p>{{ log.description }}</p>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <p>暂无审批记录</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 操作按钮 -->
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('application.my_applications') }}" class="btn btn-secondary">返回</a>
+                    <div>
+                        {% if application.status.name == '草稿' and application.user_id == current_user.id %}
+                            <a href="{{ url_for('application.edit_application', application_id=application.id) }}" class="btn btn-primary">编辑</a>
+                            <a href="{{ url_for('application.submit_application', application_id=application.id) }}" class="btn btn-success">提交申请</a>
+                        {% elif application.status.name in ['已提交', '处理中'] and application.current_step and application.current_step.role and current_user.has_role(application.current_step.role.name) %}
+                            <a href="{{ url_for('application.process_application', application_id=application.id) }}" class="btn btn-primary">处理申请</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .timeline {
+        position: relative;
+        margin: 0 0 20px;
+        padding: 0;
+        list-style: none;
+    }
+    
+    .timeline:before {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 10px;
+        width: 2px;
+        content: '';
+        background-color: #dee2e6;
+    }
+    
+    .timeline-item {
+        position: relative;
+        margin-bottom: 20px;
+        display: flex;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        left: 5px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: #007bff;
+        margin-top: 5px;
+    }
+    
+    .timeline-content {
+        padding-left: 30px;
+    }
+</style>
+{% endblock %} 

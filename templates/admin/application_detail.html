@@ -1,0 +1,295 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}申请详情{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">申请详情</h2>
+        <div>
+            <a href="{{ url_for('admin.applications') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> 返回列表
+            </a>
+            {% if application.status.name == '审批中' %}
+            <button type="button" class="btn btn-success ms-2" data-bs-toggle="modal" data-bs-target="#approveModal">
+                <i class="fas fa-check"></i> 通过
+            </button>
+            <button type="button" class="btn btn-danger ms-2" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                <i class="fas fa-times"></i> 拒绝
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 申请基本信息 -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">基本信息</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tbody>
+                            <tr>
+                                <th scope="row" width="30%">申请ID</th>
+                                <td>{{ application.id }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">标题</th>
+                                <td>{{ application.title }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">申请人</th>
+                                <td>{{ application.user.name }} ({{ application.user.username }})</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">工作流</th>
+                                <td>{{ application.workflow.name }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">当前状态</th>
+                                <td>
+                                    {% if application.status.name == '待提交' %}
+                                    <span class="badge bg-secondary">{{ application.status.name }}</span>
+                                    {% elif application.status.name == '审批中' %}
+                                    <span class="badge bg-info">{{ application.status.name }}</span>
+                                    {% elif application.status.name == '已通过' %}
+                                    <span class="badge bg-success">{{ application.status.name }}</span>
+                                    {% elif application.status.name == '已拒绝' %}
+                                    <span class="badge bg-danger">{{ application.status.name }}</span>
+                                    {% elif application.status.name == '已取消' %}
+                                    <span class="badge bg-warning">{{ application.status.name }}</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ application.status.name }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row">当前步骤</th>
+                                <td>{{ application.current_step }}</td>
+                            </tr>
+                            {% if application.vehicle %}
+                            <tr>
+                                <th scope="row">车辆</th>
+                                <td>{{ application.vehicle.plate_number }} ({{ application.vehicle.vehicle_type }})</td>
+                            </tr>
+                            {% endif %}
+                            {% if application.start_date %}
+                            <tr>
+                                <th scope="row">开始日期</th>
+                                <td>{{ application.start_date.strftime('%Y-%m-%d') }}</td>
+                            </tr>
+                            {% endif %}
+                            {% if application.end_date %}
+                            <tr>
+                                <th scope="row">结束日期</th>
+                                <td>{{ application.end_date.strftime('%Y-%m-%d') }}</td>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                                <th scope="row">创建时间</th>
+                                <td>{{ application.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">更新时间</th>
+                                <td>{{ application.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 表单数据 -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">表单数据</h5>
+                </div>
+                <div class="card-body">
+                    {% if application.forms %}
+                    <div class="accordion" id="formAccordion">
+                        {% for form_data in application.forms %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="heading{{ loop.index }}">
+                                <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}" aria-expanded="{{ 'true' if loop.first else 'false' }}" aria-controls="collapse{{ loop.index }}">
+                                    {{ form_data.form.name }}
+                                </button>
+                            </h2>
+                            <div id="collapse{{ loop.index }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" aria-labelledby="heading{{ loop.index }}" data-bs-parent="#formAccordion">
+                                <div class="accordion-body">
+                                    <table class="table table-striped">
+                                        <tbody>
+                                            {% set form_fields = form_data.get_data() %}
+                                            {% for field in form_data.form.fields %}
+                                            <tr>
+                                                <th>{{ field.label }}</th>
+                                                <td>
+                                                    {% if field.field_type == 'text' or field.field_type == 'number' or field.field_type == 'email' %}
+                                                        {{ form_fields.get(field.name, '') }}
+                                                    {% elif field.field_type == 'textarea' %}
+                                                        <pre>{{ form_fields.get(field.name, '') }}</pre>
+                                                    {% elif field.field_type == 'select' %}
+                                                        {{ form_fields.get(field.name, '') }}
+                                                    {% elif field.field_type == 'radio' %}
+                                                        {{ form_fields.get(field.name, '') }}
+                                                    {% elif field.field_type == 'checkbox' %}
+                                                        {% if form_fields.get(field.name) %}
+                                                            <i class="fas fa-check text-success"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-times text-danger"></i>
+                                                        {% endif %}
+                                                    {% elif field.field_type == 'date' %}
+                                                        {{ form_fields.get(field.name, '') }}
+                                                    {% elif field.field_type == 'time' %}
+                                                        {{ form_fields.get(field.name, '') }}
+                                                    {% elif field.field_type == 'file' %}
+                                                        {% if form_fields.get(field.name) %}
+                                                            <a href="{{ url_for('application.download_file', file_path=form_fields.get(field.name)) }}" target="_blank">
+                                                                <i class="fas fa-file"></i> 下载文件
+                                                            </a>
+                                                        {% else %}
+                                                            <span class="text-muted">未上传文件</span>
+                                                        {% endif %}
+                                                    {% elif field.field_type == 'location' %}
+                                                        {% if form_fields.get(field.name) %}
+                                                            <a href="https://maps.google.com/?q={{ form_fields.get(field.name) }}" target="_blank">
+                                                                <i class="fas fa-map-marker-alt"></i> 查看位置
+                                                            </a>
+                                                        {% else %}
+                                                            <span class="text-muted">未设置位置</span>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        {{ form_fields.get(field.name, '') }}
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 该申请没有表单数据
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 审批日志 -->
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">审批日志</h5>
+                </div>
+                <div class="card-body">
+                    {% if application.logs %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>操作时间</th>
+                                    <th>操作人</th>
+                                    <th>操作类型</th>
+                                    <th>步骤</th>
+                                    <th>详细信息</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in application.logs %}
+                                <tr>
+                                    <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                    <td>{{ log.user.name }}</td>
+                                    <td>
+                                        {% if log.action == 'create' %}
+                                        <span class="badge bg-primary">创建申请</span>
+                                        {% elif log.action == 'submit' %}
+                                        <span class="badge bg-info">提交申请</span>
+                                        {% elif log.action == 'approve' %}
+                                        <span class="badge bg-success">通过</span>
+                                        {% elif log.action == 'reject' %}
+                                        <span class="badge bg-danger">拒绝</span>
+                                        {% elif log.action == 'cancel' %}
+                                        <span class="badge bg-warning">取消</span>
+                                        {% elif log.action == 'update' %}
+                                        <span class="badge bg-secondary">更新</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ log.action }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ log.step if log.step is not none else '-' }}</td>
+                                    <td>{{ log.description }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 该申请没有操作日志
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通过确认对话框 -->
+    <div class="modal fade" id="approveModal" tabindex="-1" aria-labelledby="approveModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="approveModalLabel">确认通过申请</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>您确定要通过ID为 <strong>{{ application.id }}</strong> 的申请吗？</p>
+                    <div class="mb-3">
+                        <label for="approveComment" class="form-label">备注（可选）</label>
+                        <textarea class="form-control" id="approveComment" name="comment" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <form method="POST" action="{{ url_for('admin.approve_application', application_id=application.id) }}">
+                        <input type="hidden" name="comment" id="hiddenApproveComment">
+                        <button type="submit" class="btn btn-success" onclick="document.getElementById('hiddenApproveComment').value = document.getElementById('approveComment').value">确认通过</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 拒绝确认对话框 -->
+    <div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="rejectModalLabel">确认拒绝申请</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>您确定要拒绝ID为 <strong>{{ application.id }}</strong> 的申请吗？</p>
+                    <div class="mb-3">
+                        <label for="rejectReason" class="form-label">拒绝原因 <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="rejectReason" name="reason" rows="3" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <form method="POST" action="{{ url_for('admin.reject_application', application_id=application.id) }}">
+                        <input type="hidden" name="reason" id="hiddenRejectReason">
+                        <button type="submit" class="btn btn-danger" onclick="document.getElementById('hiddenRejectReason').value = document.getElementById('rejectReason').value">确认拒绝</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
